@@ -201,6 +201,49 @@ button.lnk{background:none;border:0;min-height:0;padding:2px 4px;font:400 11.5px
 .bossin{display:flex;gap:8px}.bossin input{flex:1;min-width:0}.bossin button{flex:none}
 .bossbar{width:100%;text-align:left;border:1px dashed var(--amber);color:var(--amber);background:transparent}
 .filebtn{display:flex;align-items:center;justify-content:center;text-transform:none;letter-spacing:0;font:600 13px var(--mono);color:var(--fg);cursor:pointer}
+body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+#cta{position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom,0px));z-index:29;padding:8px 16px;background:linear-gradient(transparent,var(--bg) 35%);display:flex;justify-content:center}
+#cta button{width:100%;max-width:560px;font-size:15px;min-height:50px}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(128px + env(safe-area-inset-bottom,0px));z-index:31;max-width:528px;margin:0 auto;background:var(--panel2);border:1px solid var(--accent);border-radius:4px;padding:8px 8px 8px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.week{display:flex;align-items:stretch;gap:4px}
+.wk{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;min-width:0}
+.wkn{min-width:28px;padding:0 4px}
+.wd{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0;min-height:0;background:var(--panel);border:1px solid var(--line);font-weight:400;min-width:0}
+.wd span{font-size:10px;color:var(--dim)}.wd b{font:400 22px/1 var(--crt)}.wd i{font-style:normal;font-size:11px;color:var(--dim);line-height:1}.wd em{font-style:normal;font-size:8.5px;letter-spacing:.04em;color:var(--dim)}
+.wd.done i{color:var(--accent)}.wd.today{border-color:var(--amber)}.wd.today i{color:var(--amber)}
+.wd.sel{background:var(--panel2);border-color:var(--accent)}.wd.sel b{color:var(--accent)}
+.chipsrow{display:flex;gap:6px;flex-wrap:wrap}
+#tmr{overflow:auto}
+#tmr .thead{display:flex;align-items:center;gap:8px;justify-content:space-between}
+#tmr .tbar{height:4px;background:var(--panel2);border-radius:2px;overflow:hidden}#tmr .tbar i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s linear}
+#tmr .clock.mid{font-size:min(18vw,84px)}
+#tmr .stage{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:150px;justify-content:center}
+#tmr .stage .big{font:400 min(26vw,120px)/1 var(--crt);color:var(--amber);font-variant-numeric:tabular-nums}
+#tmr .stage .mv{font:600 20px/1.25 var(--mono);text-wrap:balance}
+#tmr .stage .cue{color:var(--dim);font-size:13px;max-width:34ch}
+#tmr .stage .nx{color:var(--dim);font-size:12.5px;border-top:1px dashed var(--line);padding-top:6px;margin-top:4px}
+#tmr .grow{flex:1;display:flex;flex-direction:column;justify-content:center}
+#tmr .queue{display:flex;flex-direction:column;gap:2px;max-width:420px;width:100%;margin:0 auto}
+#tmr .qh{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:2px}
+#tmr .q{display:grid;grid-template-columns:18px minmax(64px,auto) 1fr;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px dashed var(--line);color:var(--dim)}
+#tmr .q .qa{text-align:right;font-variant-numeric:tabular-nums}
+#tmr .q.c{color:var(--fg)}#tmr .q.c .qm,#tmr .q.c .qa{color:var(--accent)}
+#tmr .q.d{opacity:.55}
+.playbtns{display:grid;grid-template-columns:1fr 2.2fr;gap:10px}
+.playbtns button{min-height:64px;font-size:16px}
+.playbtns:has(> :only-child){grid-template-columns:1fr}
+#tdone{font-size:20px;letter-spacing:.06em}
+.tctl button{flex:1}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:41}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:42;background:var(--panel);border-top:1px solid var(--accent);border-radius:10px 10px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;max-width:600px;margin:0 auto}
+.cirow{display:flex;flex-direction:column;gap:6px}.cil{display:flex;justify-content:space-between;align-items:baseline}
+.cib{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.cib button{min-height:46px;font-size:16px}
+#cele{position:fixed;inset:0;z-index:60;background:rgba(10,9,7,.94);display:flex;align-items:center;justify-content:center;padding:24px 16px;cursor:pointer}
+#cele .cbox{max-width:520px;width:100%;display:flex;flex-direction:column;gap:10px;border:1px solid var(--accent);background:var(--bg);padding:20px 16px;border-radius:4px;box-shadow:0 0 40px rgba(224,122,82,.25)}
+#cele .cbanner{margin:0;font:400 64px/1 var(--crt);color:var(--accent);text-align:center;text-shadow:0 0 18px rgba(224,122,82,.5)}
+#cele .ctitle{font:400 30px/1 var(--crt);color:var(--amber);text-align:center}
+#cele .clines{margin:0;font:12.5px/1.6 var(--mono);color:var(--fg);white-space:pre-wrap;min-height:6em}
+.report{border-color:var(--amber)}
 pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:auto}
 </style>
 
@@ -218,6 +261,10 @@ pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:aut
 </div>
 <nav class="tabs"><div class="in" id="tabs"></div></nav>
 <div id="tmr" hidden></div>
+<div id="cta" hidden></div>
+<div id="toast" hidden role="status"></div>
+<div id="sheet"></div>
+<div id="cele" hidden data-a="celeclose"></div>
 
 <script>
 /* ============ helpers ============ */
@@ -569,11 +616,11 @@ function swapCands(pat,loc){
  return out;
 }
 function generate(k,reroll=0){
- const loc=dayLoc(k),mins=dayMins(k),ck=k+':'+reroll+':'+loc+':'+mins;if(GEN[ck])return GEN[ck];
+ const loc=dayLoc(k),mins=dayMins(k),ck=k+':'+reroll+':'+loc+':'+mins+':'+((getDay(k).checkin||{}).score||'');if(GEN[ck])return GEN[ck];
  const type=SCHED[parseKey(k).getDay()],T=TEMPLATES[type];
  if(!T.slots)return null;
  const {r}=formatDraw(k,reroll),f=finalFormat(k,reroll);
- const F=FORMATS[f],deload=isDeload(k),dl=deload?.75:1,m=mins/20;
+ const F=FORMATS[f],deload=isDeload(k),ci=getDay(k).checkin,recovery=!!(ci&&ci.score<=RECOVERY_AT),dl=(deload?.75:1)*(recovery?.8:1),m=mins/20;
  const recent=recentIds(k,3);
  const burpRecent=[...recent].some(id=>BURPEE_IDS.has(id));
  const used=new Set(),items=[];
@@ -591,7 +638,8 @@ function generate(k,reroll=0){
  }
  const name=pick(r,NAMES)+'/'+pad(hash(k+reroll)%100);
  const rounds=f==='fortime'?Math.max(2,Math.round(4*m*(deload?.75:1))):f==='intervals'?Math.max(1,Math.round(mins/5)):null;
- return GEN[ck]={type,title:T.title,format:f,name,deload,loc,mins,rounds,items};
+ if(recovery&&f==='intervals')items.forEach(it=>{it.amt=30});
+ return GEN[ck]={type,title:T.title,format:f,name,deload,recovery,loc,mins,rounds,items};
 }
 function workoutFor(k){const d=getDay(k);return d.workout||generate(k,d.reroll||0)}
 function runFor(k){return RUNS[weekIndex(k)%RUNS.length]}
@@ -795,6 +843,7 @@ function withXP(fn,{always=false}={}){
  if(b.L>before.L)msgs.push(`LEVEL UP → ${b.L} · ${b.title}`);
  for(const id of b.skills)if(!before.sk.has(id)&&!(S.profile.base||[]).includes(id)){const N=ALL_NODES.find(x=>x.id===id);msgs.push(`SKILL UNLOCKED ${N.n} (+${100*N.tier} XP)`)}
  for(const id of b.ach)if(!before.ach.has(id)){const A=ACH.find(x=>x.id===id);msgs.push(`UNLOCKED ${A.n} (+${A.xp} XP)`)}
+ if(msgs.some(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED/.test(m)))setTimeout(()=>celebrate(msgs),80);
  return msgs;
 }
 function streak(){return computeHero().streak}
@@ -808,25 +857,47 @@ function render(){
  if(!S.loaded){m.innerHTML=`<div class="box"><div class="prompt">$ <i>rep</i> --boot</div><div class="muted">Loading your log…</div></div>`;return}
  {const h=computeHero();$('#lvl').textContent=`lvl ${h.L} · ${h.title} · ${h.xp-xpAt(h.L)}/${xpAt(h.L+1)-xpAt(h.L)} xp`}
  m.innerHTML=({today:vToday,stats:vStats,body:vBody,hero:vHero,setup:vSetup}[S.tab])();
+ $('#sheet').innerHTML=vSheet();
+ renderCTA();
+}
+function renderCTA(){
+ const el=$('#cta');let html='';
+ if(S.tab==='today'&&S.loaded){
+  const k=S.view,T=TEMPLATES[SCHED[parseKey(k).getDay()]],d=getDay(k);
+  if(T.slots){const w=workoutFor(k);if(!w.result&&S.form!==k)html=`<button class="pri" data-a="start">▶ Start ${esc(fmtL(w))} · ~${estimateMins(w)} min</button>`}
+  else if(T.run&&!(d.run&&d.run.done))html=`<button class="pri" data-a="seq" data-v="run">▶ Start ${esc(runFor(k).name.toLowerCase())}</button>`;
+  else if(T.mob&&!(d.mob&&d.mob.done))html=`<button class="pri" data-a="seq" data-v="mob">▶ Start mobility · ${Math.round(seqSecs(mobFor(k).steps)/60)} min</button>`;
+ }
+ el.innerHTML=html;el.hidden=!html;document.body.classList.toggle('has-cta',!!html);
 }
 function vToday(){
  const k=S.view,dt=parseKey(k),type=SCHED[dt.getDay()],T=TEMPLATES[type],d=getDay(k),isToday=k===TODAY();
  const dayN=daysBetween(S.profile.start,k)+1;
  let h=`<div class="prompt">$ <i>rep</i> today --day ${dayN>0?dayN:'—'}${isDeload(k)?' --deload':''}</div>
- <div class="daynav"><button class="sm ghost" data-a="day" data-v="-1" aria-label="Previous day">‹</button>
- <h1>${DOW[dt.getDay()]} ${dt.getDate()} ${MON[dt.getMonth()]}${isToday?' <span class="tag a">today</span>':''}</h1>
- <button class="sm ghost" data-a="day" data-v="1" aria-label="Next day">›</button>${isToday?'':'<button class="sm" data-a="day" data-v="0">Today</button>'}</div>`;
+ ${weekStrip(k)}
+ <div class="daynav"><h1>${DOW[dt.getDay()]} ${dt.getDate()} ${MON[dt.getMonth()]}${isToday?' <span class="tag a">today</span>':''}</h1>${isToday?'':'<button class="sm" data-a="day" data-v="0">Today</button>'}</div>`;
+ if(isToday){const rp=pendingReport();if(rp)h+=reportHTML(rp,true)}
  if(S.flash)h+=`<div class="flash">${esc(S.flash)}</div>`;
  if(T.slots){
   const locked=!!(d.workout&&d.workout.result),L=dayLoc(k),M=dayMins(k);
   h+=`<div class="switch"><div class="seg" role="group" aria-label="Where">${Object.entries(LOCS).map(([id,l])=>`<button class="sm ${L===id?'on':''}" data-a="setloc" data-v="${id}" ${locked?'disabled':''}>${l}</button>`).join('')}</div><div class="seg" role="group" aria-label="Minutes">${[10,20,30].map(x=>`<button class="sm ${M===x?'on':''}" data-a="setmins" data-v="${x}" ${locked?'disabled':''}>${x}m</button>`).join('')}</div></div>`;
  }
- {const due=isToday?bossesDue():[];if(due.length&&!(T.slots&&!(d.workout&&d.workout.result)))h+=`<button class="bossbar" data-a="gotoboss">⚔ ${due.length} boss fight${due.length>1?'s':''} ready${(S.profile.bosses&&Object.keys(S.profile.bosses).length)?'':' · set your baselines'} ›</button>`}
+ {const cal=isToday?calibPending():[];if(cal.length)h+=`<button class="bossbar" data-a="gotoboss">⚔ Calibrate: ${cal.length} quick test${cal.length>1?'s':''} set your starting levels ›</button>`;
+ const due=isToday&&!cal.length?bossesDue():[];if(due.length&&!(T.slots&&!(d.workout&&d.workout.result)))h+=`<button class="bossbar" data-a="gotoboss">⚔ ${due.length} boss fight${due.length>1?'s':''} ready${(S.profile.bosses&&Object.keys(S.profile.bosses).length)?'':' · set your baselines'} ›</button>`}
  if(T.slots)h+=vWorkout(k,d);
  else if(T.run)h+=vRun(k,d);
  else h+=vMob(k,d);
  h+=vHabits(k,d);
  return h;
+}
+const DOW1=['S','M','T','W','T','F','S'];
+const SHORTTYPE={push:'PUSH',legsA:'LEGS',run:'RUN',pull:'PULL',legsB:'LEGS',full:'UPPR',mobility:'MOB'};
+function weekStrip(k){
+ const mon=monOf(k),t=TODAY(),h=computeHero();
+ const cells=Array.from({length:7},(_,i)=>{const d=addDays(mon,i),dt=parseKey(d),done=dayDone(d),fz=h.frozen.has(d);
+  const g=done?'■':fz?'▣':d===t?'◧':d>t?'·':'–';
+  return `<button class="wd ${d===k?'sel':''} ${d===t?'today':''} ${done?'done':''}" data-a="goto" data-v="${d}" aria-label="${DOW[dt.getDay()]} ${dt.getDate()}${done?', done':''}"><span>${DOW1[dt.getDay()]}</span><b>${dt.getDate()}</b><i>${g}</i><em>${SHORTTYPE[SCHED[dt.getDay()]]}</em></button>`}).join('');
+ return `<div class="week"><button class="sm ghost wkn" data-a="day" data-v="-7" aria-label="Previous week">‹</button><div class="wk">${cells}</div><button class="sm ghost wkn" data-a="day" data-v="7" aria-label="Next week">›</button></div>`;
 }
 function seqList(steps,key,d,k){
  return `<div class="list">${steps.map(s=>`<div class="row"><span class="nm">${esc(s[0])}</span><span class="muted small">${fmt(s[1])}</span></div>`).join('')}</div>`;
@@ -840,7 +911,9 @@ function vWorkout(k,d){
  h+=`<div class="box ${done?'':'hot'}">
   <div class="boxh"><h2>${esc(w.title)}</h2><span class="tag a">${fmtL(w)}</span></div>
   <div class="code">${esc(w.name)}</div>
+  <div class="chipsrow"><span class="tag">~${estimateMins(w)} min</span><span class="tag" aria-label="Difficulty ${difficulty(w)} of 5">${dots(difficulty(w))}</span>${d.checkin?`<span class="tag ${w.recovery?'am':'ok'}">ready ${d.checkin.score.toFixed(1)}</span>`:''}</div>
   <div class="muted small">${esc(fmtD(w))}${w.deload?' <span style="color:var(--amber)">Deload week: volume at 75%.</span>':''}</div>
+  ${w.recovery?'<div class="warnbox">Recovery mode: about 20% less volume today, from your check-in.</div>':''}
   <div class="list">${w.items.map((it,i)=>`<div class="row"><span class="amt">${w.format==='ladder'?'+'+amtText(it.amt,it.u):w.format==='emom'?'M'+(i+1):amtText(it.amt,it.u)}</span><span class="nm">${w.format==='emom'?amtText(it.amt,it.u)+' · ':''}${esc(it.n)}<small>${esc(it.c||'')} <a class="demo" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(it.n)+' exercise form')}" target="_blank" rel="noopener">demo ↗</a>${done?'':` <button class="lnk" data-a="swap" data-v="${i}">⇄ swap</button> <button class="lnk" data-a="ban" data-v="${i}">⊘ hide</button>`}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}</div>`;
  if(done){
   const r=w.result;
@@ -850,8 +923,7 @@ function vWorkout(k,d){
  }else if(S.form===k){
   h+=vResultForm(k,w);
  }else{
-  h+=`<div class="btns"><button class="pri" data-a="start">▶ Start ${fmtL(w)}</button></div>
-  <div class="btns"><button class="ghost sm" data-a="reroll">↻ Reroll workout</button><button class="ghost sm" data-a="logmanual">Log without timer</button></div>`;
+  h+=`<div class="btns"><button class="ghost sm" data-a="reroll">↻ Reroll workout</button><button class="ghost sm" data-a="logmanual">Log without timer</button></div>`;
  }
  h+=`</div>`;
  h+=`<div class="box"><details ${done&&!d.cool?'open':''}><summary><span>Cool-down · ${Math.round(seqSecs(cool)/60)} min</span><span class="tag ${d.cool?'ok':''}" style="margin-left:auto">${d.cool?'done':'stretch'}</span></summary>
@@ -991,6 +1063,7 @@ function vStats(){
  <div class="box"><div class="boxh"><h2>WATER</h2><span class="tag">oz / day</span></div>${barChart(series('water'),{goal:g.water,unit:' oz'})}</div>
  <div class="box"><div class="boxh"><h2>WALK</h2><span class="tag">min / day</span></div>${barChart(series('walk'),{goal:g.walk,unit:' min'})}</div>
  ${hasSteps?`<div class="box"><div class="boxh"><h2>STEPS</h2></div>${barChart(steps,{fmtV:v=>Math.round(v).toLocaleString()})}</div>`:''}
+ ${ks.some(k=>getDay(k).checkin)?`<div class="box"><div class="boxh"><h2>READINESS</h2><span class="tag">check-in 1–5</span></div><div class="small muted">Below ${RECOVERY_AT} switches on recovery mode.</div>${barChart(ks.map(k=>({k,v:getDay(k).checkin?getDay(k).checkin.score:null})),{goal:RECOVERY_AT,goalLabel:'recovery below',fmtV:v=>Math.round(v*10)/10})}</div>`:''}
  <div class="box"><div class="boxh"><h2>EATING WINDOW</h2><span class="tag">hours</span></div><div class="small muted">16:8 means fasting 16 hours and eating inside an 8-hour window.</div>${barChart(eat,{goal:8,unit:'h',goalLabel:'8h window',fmtV:v=>Math.round(v*10)/10})}</div>
  <div class="box"><div class="boxh"><h2>CONSISTENCY</h2><span class="tag">sessions / week</span></div><div class="small muted">Workouts, runs and mobility days, Monday to Sunday.</div>${barChart(weeks,{goal:7,unit:'',goalLabel:'every day = 7',H:130})}</div>`;
  return h;
@@ -1031,7 +1104,7 @@ function vHero(){
  const flash=S.flash?`<div class="flash">${esc(S.flash)}</div>`:'';
  if(ht==='skills')return nav+flash+vSkills();
  if(ht==='boss')return nav+flash+vBosses();
- if(ht==='log')return nav+vHistory();
+ if(ht==='log')return nav+vHistory()+vReports();
  return nav+flash+vCharacter();
 }
 function vSkills(){
@@ -1055,12 +1128,13 @@ function vBosses(){
  const due=bossesDue();
  let out=`<div class="prompt">$ <i>boss</i> --list</div>
  <div class="box"><div class="boxh"><h2>BOSS FIGHTS</h2><span class="tag ${due.length?'am':'ok'}">${due.length?due.length+' ready':'all fought'}</span></div>
+ ${calibPending().length?`<div class="warnbox">Your first fight against each CALIBRATION boss sets where that ladder starts, so the workouts fit you from day one.</div>`:''}
  <div class="small muted">Max-effort tests every ${BOSS_DUE} days. Each fight is worth 75 XP, beating your record adds 100, and records unlock skills. Do them fresh, on a rest or mobility day.</div></div>`;
  for(const b of BOSSES){
   const best=bossBest(b.id),last=bossLast(b.id),hist=((S.profile.bosses||{})[b.id]||[]),isDue=due.includes(b);
   const draft=S.bossDraft&&S.bossDraft.id===b.id?S.bossDraft.v:'';
   const nextIn=last?Math.max(0,BOSS_DUE-daysBetween(last.k,TODAY())):0;
-  out+=`<div class="box boss ${isDue?'hot':''}"><div class="boxh"><h2>${b.n}</h2><span class="tag ${isDue?'a':''}">${isDue?'ready':'in '+nextIn+'d'}</span></div>
+  out+=`<div class="box boss ${isDue?'hot':''}"><div class="boxh"><h2>${b.n}</h2><span class="tag ${isDue?'a':''}">${calibPending().includes(b.id)?'calibration':isDue?'ready':'in '+nextIn+'d'}</span></div>
   <div class="small">${esc(b.test)}</div>
   <div class="grid3"><div class="stat"><b>${bossFmt(b,best)}</b><span>record</span></div><div class="stat"><b>${last?bossFmt(b,last.v):'—'}</b><span>last</span></div><div class="stat"><b>${hist.length}</b><span>fights</span></div></div>
   ${hist.length>1?sparkline(hist.map(e=>[e.k,b.lower?-e.v:e.v]),360,60):''}
@@ -1082,6 +1156,12 @@ function vCharacter(){
  <div class="ach">${ACH.map(a=>{const on=h.ach.includes(a.id);return `<div class="achi ${on?'on':''}"><b>${on?'■':'□'} ${a.n}</b><span>${esc(a.d)} · +${a.xp}</span></div>`}).join('')}</div></div>
  <div class="box"><div class="boxh"><h2>XP TABLE</h2></div><div class="list small">${[['Workout logged',100],['Run or mobility day','100 / 80'],['Rated too hard','+15'],['Warm-up / cool-down','10 each'],['Protein goal',20],['Walk goal',15],['Water goal',10],['Weigh-in',5],['Measurements',10],['Every 7-day streak',50]].map(([a,b])=>`<div class="row"><span class="nm">${a}</span><span class="muted">${b}</span></div>`).join('')}</div></div>
  `;
+}
+function vReports(){
+ const cur=monOf(TODAY()),out=[];
+ for(let i=1;i<=8;i++){const m=addDays(cur,-7*i);if(addDays(m,6)<S.profile.start)break;const r=weekReport(m);if(r.sessions||r.logged)out.push(r)}
+ if(!out.length)return '';
+ return `<div class="box"><div class="boxh"><h2>WEEK REPORTS</h2></div>${out.map(r=>`<details><summary class="small">${MON[parseKey(r.mon).getMonth()]} ${parseKey(r.mon).getDate()} · ${r.sessions}/7 sessions · +${r.xp} xp</summary>${reportHTML(r,false)}</details>`).join('')}</div>`;
 }
 function vHistory(){
  const t=TODAY();let total=0,wk=0;
@@ -1112,6 +1192,7 @@ function vSetup(){
  <div class="grid3"><label>Protein g<input data-p="goals.protein" type="number" inputmode="numeric" value="${p.goals.protein}"></label><label>Water oz<input data-p="goals.water" type="number" inputmode="numeric" value="${p.goals.water}"></label><label>Walk min<input data-p="goals.walk" type="number" inputmode="numeric" value="${p.goals.walk}"></label></div></div>
  <div class="box"><div class="boxh"><h2>DEFAULTS</h2></div><div class="small muted">What a training day starts with. You can still switch it on the Today tab.</div>
  <div class="grid2"><label>Location<select data-p="loc">${Object.entries(LOCS).map(([id,l])=>`<option value="${id}" ${p.loc===id?'selected':''}>${l}</option>`).join('')}</select></label><label>Minutes<select data-p="mins">${[10,20,30].map(x=>`<option value="${x}" ${+p.mins===x?'selected':''}>${x}</option>`).join('')}</select></label></div></div>
+ <div class="box"><div class="boxh"><h2>WORKOUT PLAYER</h2></div><label class="toggle"><span>Voice cues (next move, halfway, countdowns)</span><input type="checkbox" data-voice="1" ${p.voice!==false?'checked':''}></label><div class="small muted">If your phone is on silent, the voice and beeps may be quiet. You can also mute from inside the player.</div></div>
  <div class="box"><div class="boxh"><h2>EQUIPMENT</h2></div><div class="small muted">The generator only picks moves you have gear for. Add the 35 lb DB or 50 lb KB when you get them.</div>
  <div>${EQ.map(([id,l])=>`<label class="toggle"><span>${l}</span><input type="checkbox" data-eq="${id}" ${p.equip[id]?'checked':''}></label>`).join('')}</div></div>
  ${(p.ban||[]).length?`<div class="box"><div class="boxh"><h2>HIDDEN MOVES</h2></div><div class="small muted">These never show up in generated workouts.</div><div class="list">${p.ban.map(id=>{const e=Object.values(PAT).flatMap(P=>P.ladder.flatMap(x=>[x,...(x.alts||[])])).find(x=>x.id===id);return `<div class="row"><span class="nm">${esc(e?e.n:id)}</span><button class="sm" data-a="unban" data-v="${esc(id)}">Unhide</button></div>`}).join('')}</div></div>`:''}
@@ -1133,12 +1214,12 @@ const ACT={
  day:b=>{const v=+b.dataset.v;S.view=v===0?TODAY():addDays(S.view,v);S.flash='';S.form=null;render()},
  goto:b=>{S.view=b.dataset.v;S.tab='today';S.flash='';render();scrollTo(0,0)},
  reroll:()=>{editDay(S.view,d=>{d.reroll=(d.reroll||0)+1;if(d.workout&&!d.workout.result)delete d.workout});S.form=null;render()},
- mark:b=>{const m=withXP(()=>editDay(S.view,d=>{d[b.dataset.v]=!d[b.dataset.v]}));if(m.length)S.flash='> '+m.join('\n');render()},
- setloc:b=>{editDay(S.view,d=>{d.loc=b.dataset.v;if(d.workout&&!d.workout.result)delete d.workout});S.form=null;render()},
- setmins:b=>{editDay(S.view,d=>{d.mins=+b.dataset.v;if(d.workout&&!d.workout.result)delete d.workout});S.form=null;render()},
- markmob:()=>{const m=withXP(()=>editDay(S.view,d=>{d.mob={...(d.mob||{}),done:!(d.mob&&d.mob.done),routine:mobFor(S.view).name}}),{always:true});S.flash=m.length?'> Mobility logged.\n'+m.join('\n'):'';render()},
- markrun:()=>{const m=withXP(()=>editDay(S.view,d=>{d.run={...(d.run||{}),done:!(d.run&&d.run.done),plan:runFor(S.view).name}}),{always:true});S.flash=m.length?'> Run logged.\n'+m.join('\n'):'';render()},
- bump:b=>{const f=b.dataset.f,v=+b.dataset.v;const m=withXP(()=>editDay(S.view,d=>{d[f]=Math.max(0,(+d[f]||0)+v)}));if(m.length)S.flash='> '+m.join('\n');render()},
+ mark:b=>{const m=undoable(b.dataset.v==='warm'?'Warm-up updated':'Cool-down updated',()=>withXP(()=>editDay(S.view,d=>{d[b.dataset.v]=!d[b.dataset.v]})));if(m.length)S.flash='> '+m.join('\n');render()},
+ setloc:b=>{undoable('Location changed',()=>editDay(S.view,d=>{d.loc=b.dataset.v;if(d.workout&&!d.workout.result)delete d.workout}));S.form=null;render()},
+ setmins:b=>{undoable('Length changed',()=>editDay(S.view,d=>{d.mins=+b.dataset.v;if(d.workout&&!d.workout.result)delete d.workout}));S.form=null;render()},
+ markmob:()=>{const m=undoable('Mobility updated',()=>withXP(()=>editDay(S.view,d=>{d.mob={...(d.mob||{}),done:!(d.mob&&d.mob.done),routine:mobFor(S.view).name}}),{always:true}));S.flash=m.length?'> Mobility logged.\n'+m.join('\n'):'';render()},
+ markrun:()=>{const m=undoable('Run updated',()=>withXP(()=>editDay(S.view,d=>{d.run={...(d.run||{}),done:!(d.run&&d.run.done),plan:runFor(S.view).name}}),{always:true}));S.flash=m.length?'> Run logged.\n'+m.join('\n'):'';render()},
+ bump:b=>{const f=b.dataset.f,v=+b.dataset.v,u={protein:'g protein',water:' oz water',walk:' min walk'}[f]||'';const m=undoable(`${v>0?'+':''}${v}${u}`,()=>withXP(()=>editDay(S.view,d=>{d[f]=Math.max(0,(+d[f]||0)+v)})));if(m.length)S.flash='> '+m.join('\n');render()},
  start:()=>startWorkout(),
  logmanual:()=>{S.form=S.view;S.rating=null;S.pendingResult=null;render()},
  cancelform:()=>{S.form=null;render()},
@@ -1147,7 +1228,13 @@ const ACT={
  seq:b=>startSeq(b.dataset.v),
  lvl:b=>{const pat=b.dataset.p,v=+b.dataset.v;const m=withXP(()=>editProfile(p=>{const L=p.levels[pat]||(p.levels[pat]={i:0,v:1});L.i=Math.max(0,Math.min(PAT[pat].ladder.length-1,L.i+v));L.v=1}));if(m.length)S.flash='> '+m.join('\n');render()},
  export:()=>doExport(),
- swap:b=>{swapItem(+b.dataset.v,false)},
+ swap:b=>{undoable('Move swapped',()=>swapItem(+b.dataset.v,false))},
+ undo:()=>doUndo(),
+ ci:b=>{S.ci={...(S.ci||{sleep:3,sore:3,energy:3}),[b.dataset.f]:+b.dataset.v};$('#sheet').innerHTML=vSheet()},
+ cisave:()=>saveCheckin(),
+ sheetclose:()=>{S.sheet=null;$('#sheet').innerHTML=''},
+ celeclose:()=>{const el=$('#cele');clearInterval(el._t);el.hidden=true},
+ repseen:b=>{const v=b.dataset.v;editProfile(p=>{p.seenReports=[...new Set([...(p.seenReports||[]),v])].slice(-60)});render()},
  gotoboss:()=>{S.tab='hero';S.heroTab='boss';S.flash='';render();scrollTo(0,0)},
  htab:b=>{S.heroTab=b.dataset.v;S.flash='';render();scrollTo(0,0)},
  branch:b=>{S.branch=b.dataset.v;render()},
@@ -1156,13 +1243,15 @@ const ACT={
  bosslog:b=>{
   const B=BOSSES.find(x=>x.id===b.dataset.v),raw=$('#boss-'+B.id)?.value;
   const v=B.unit==='time'?parseTime(raw):(raw===''||raw==null?null:Math.round(+raw));
-  if(v==null||isNaN(v)||v<=0){S.flash=`> Enter your ${B.unit==='time'?'time as mm:ss':B.unit==='sec'?'time in seconds':'reps'} first.`;render();return}
+  if(v==null||isNaN(v)||v<0||(v===0&&B.unit!=='reps')){S.flash=`> Enter your ${B.unit==='time'?'time as mm:ss':B.unit==='sec'?'time in seconds':'reps'} first.`;render();return}
   const prev=bossBest(B.id);
-  const m=withXP(()=>editProfile(p=>{p.bosses={...(p.bosses||{})};p.bosses[B.id]=[...(p.bosses[B.id]||[]),{k:TODAY(),v}]}),{always:true});
+  let cal=null;
+  const m=withXP(()=>{editProfile(p=>{p.bosses={...(p.bosses||{})};p.bosses[B.id]=[...(p.bosses[B.id]||[]),{k:TODAY(),v}]});if(prev==null)cal=calibrate(B.id,v)},{always:true});
+  if(cal)m.unshift(cal);
   const pr=prev==null?'First record set.':(B.lower?v<prev:v>prev)?`NEW RECORD (was ${bossFmt(B,prev)})`:`Record stands at ${bossFmt(B,prev)}.`;
   S.bossDraft=null;S.flash=`> ${B.n}: ${bossFmt(B,v)}. ${pr}\n${m.join('\n')}`;render();scrollTo(0,0)},
  bosstimer:b=>{const B=BOSSES.find(x=>x.id===b.dataset.v);openTimer({kind:'boss',boss:B,total:B.cd||0,label:B.n,rounds:0})},
- ban:b=>{swapItem(+b.dataset.v,true)},
+ ban:b=>{undoable('Move hidden',()=>swapItem(+b.dataset.v,true))},
  unban:b=>{editProfile(p=>{p.ban=(p.ban||[]).filter(x=>x!==b.dataset.v)});render()},
  range:b=>{S.range=+b.dataset.v;render()},
  tip:b=>{const r=document.getElementById(b.dataset.c);if(r)r.textContent=b.dataset.v;b.closest('svg')?.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')}
@@ -1183,6 +1272,7 @@ document.addEventListener('change',e=>{
   if(f!=='steps')scheduleRender();
  }
  if(el.dataset.p){const path=el.dataset.p,v=el.value;setTimeout(()=>{if(path==='loc'||path==='mins')render()},0);editProfile(p=>{if(path==='start'){if(v)p.start=v}else if(path==='loc'){p.loc=v}else if(path==='mins'){p.mins=+v}else{const[a,b]=path.split('.');p[a][b]=Math.max(1,+v||p[a][b])}})}
+ if(el.dataset.voice){editProfile(p=>{p.voice=el.checked})}
  if(el.dataset.eq){editProfile(p=>{p.equip[el.dataset.eq]=el.checked});render()}
 });
 
@@ -1197,7 +1287,7 @@ function swapItem(i,ban){
  if(!c.length){S.flash=ban?'> Hidden from future workouts. Nothing else fits this slot today, so it stays.':'> No other option at this level with your current equipment.';render();return}
  w.swaps=(w.swaps||0)+1;const ex=c[(w.swaps-1)%c.length];
  w.items[i]=makeItem(ex,pat,1,{f:w.format,dl:w.deload?.75:1,m:(w.mins||20)/20,loc});
- editDay(k,d=>{d.workout=w});S.flash=ban?`> Hidden for good: ${fam(it.n)}. Unhide it in Setup.`:'';render();
+ editDay(k,d=>{d.workout=w});S.flash=ban?`> Hidden for good: ${fam(it.n)}. Unhide it in Setup.`:'';render();setTimeout(showToast,0);
 }
 function saveResult(){
  const k=S.view,w=structuredClone(workoutFor(k)),F=FORMATS[w.format];
@@ -1219,89 +1309,307 @@ function saveResult(){
  render();scrollTo(0,0);
 }
 
-/* ============ timer ============ */
+/* ============ timer + workout player ============ */
 let AC=null,wake=null,tickId=null;
+const short=n=>n.split(' · ')[0];
 function beep(f=880,d=.12){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.value=.06;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}try{navigator.vibrate&&navigator.vibrate(d>.2?300:80)}catch(e){}}
 async function lockScreen(){try{wake=await navigator.wakeLock?.request('screen')}catch(e){wake=null}}
+// voice cues (iPhone speaks only after a tap, so the Start tap unlocks it)
+const voiceOn=()=>S.profile.voice!==false&&!S.muted&&('speechSynthesis' in window);
+function say(text){try{if(!voiceOn())return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=1.05;speechSynthesis.speak(u)}catch(e){}}
+const spoken=n=>short(n).replace(/\(.*?\)/g,'').replace(/\bKB\b/g,'kettlebell').replace(/\bDBs?\b/g,'dumbbell').replace(/(\d+) yd/g,'$1 yards').replace(/\s+/g,' ').trim();
+const sayAmt=(it,mult=1)=>{const a=it.amt*mult;return it.u==='sec'?`${a} seconds of ${spoken(it.n)}`:`${a}${it.u==='side'?' per side,':''} ${spoken(it.n)}`};
+const STEP_FMT={fortime:1,chipper:1,amrap:1,ladder:1};
+function stepAt(t,pos){const w=t.w,n=w.items.length,idx=pos%n,round=Math.floor(pos/n);return {it:w.items[idx],idx,round,mult:w.format==='ladder'?round+1:1}}
+const totalSteps=t=>{const w=t.w,n=w.items.length;return w.format==='fortime'?n*(w.rounds||4):w.format==='chipper'?n:Infinity};
+
 function startWorkout(){
- const k=S.view,w=workoutFor(k),F=FORMATS[w.format];
- editDay(k,d=>{if(!d.workout)d.workout=structuredClone(w)}); // freeze today's workout once started
- openTimer({kind:F.timer,total:w.format==='intervals'?(w.rounds||4)*w.items.length*60:(w.mins||20)*60,w,k,rounds:0});
+ const k=S.view,d=getDay(k);
+ if(!d.checkin){S.ci={sleep:3,sore:3,energy:3};S.sheet='checkin';render();return}
+ launchWorkout(k);
+}
+function launchWorkout(k){
+ const w0=workoutFor(k);editDay(k,d=>{if(!d.workout)d.workout=structuredClone(w0)});
+ const w=getDay(k).workout;
+ const kind=STEP_FMT[w.format]?'play':w.format==='emom'?'emom':'int';
+ const total=w.format==='intervals'?(w.rounds||4)*w.items.length*60:(w.mins||20)*60;
+ say(`Get ready. ${fmtL(w).replace(' / ',' ')}. First: ${sayAmt(w.items[0])}`);
+ openTimer({kind,total,w,k,pos:0,work:w.recovery?30:40});
 }
 function startSeq(which){
  const k=S.view,type=SCHED[parseKey(k).getDay()];
  const steps=which==='warm'?warmFor(type):which==='cool'?coolFor(type):which==='mob'?mobFor(k).steps:runFor(k).steps;
  const label={warm:'WARM-UP',cool:'COOL-DOWN',mob:mobFor(k).name,run:runFor(k).name}[which];
+ say(`${label.split(' · ')[0].toLowerCase()}. First: ${steps[0][0]}`);
  openTimer({kind:'seq',steps,total:seqSecs(steps),label,which,k});
 }
 function openTimer(t){
  beep(660,.05);lockScreen();
- S.timer={...t,acc:-5,t0:Date.now(),run:true,last:null};
+ S.timer={...t,acc:-5,t0:Date.now(),run:true,last:null,stage:null};
  const ov=$('#tmr');ov.hidden=false;document.body.style.overflow='hidden';
  drawTimer(true);clearInterval(tickId);tickId=setInterval(()=>drawTimer(false),200);
 }
 function elapsed(){const t=S.timer;return t.acc+(t.run?(Date.now()-t.t0)/1000:0)}
-function closeTimer(){clearInterval(tickId);S.timer=null;$('#tmr').hidden=true;document.body.style.overflow='';try{wake&&wake.release()}catch(e){}wake=null}
+function closeTimer(){clearInterval(tickId);S.timer=null;$('#tmr').hidden=true;document.body.style.overflow='';try{wake&&wake.release()}catch(e){}wake=null;try{speechSynthesis.cancel()}catch(e){}}
+function stageHTML(big,name,cue,next){return `<div class="big">${esc(big)}</div><div class="mv">${esc(name)}</div>${cue?`<div class="cue">${esc(cue)}</div>`:''}${next?`<div class="nx">next › ${esc(next)}</div>`:''}`}
+function seqPos(t,el){let acc=0,i=0;while(i<t.steps.length&&el>=acc+t.steps[i][1]){acc+=t.steps[i][1];i++}return {i,acc}}
 function drawTimer(full){
  const t=S.timer;if(!t)return;const el=elapsed(),ov=$('#tmr');
- let clock='',now='',sub='',rest=false,done=false;
- if(el<0){clock=String(Math.ceil(-el));now='GET READY';sub=t.kind==='seq'?t.steps[0][0]:(t.w?firstMove(t):'');}
- else if(t.kind==='up'){clock=fmt(el);now=t.w.name;sub=`cap ${fmt(t.total)}`;if(el>=t.total)done=true}
- else if(t.kind==='amrap'){clock=fmt(t.total-el);now=t.w.name;sub=t.w.format==='ladder'?`rung ${t.rounds+1}: ${t.w.items.map(i=>amtText(i.amt*(t.rounds+1),i.u)+' '+short(i.n)).join(' · ')}`:'tap +1 after each full round';if(el>=t.total)done=true}
- else if(t.kind==='emom'){const m=Math.floor(el/60),it=t.w.items[m%t.w.items.length];clock=fmt(60-(el%60));now=`${amtText(it.amt,it.u)} ${it.n}`;sub=`minute ${Math.min(m+1,t.total/60)} of ${t.total/60} · next: ${short(t.w.items[(m+1)%t.w.items.length].n)}`;if(el>=t.total)done=true}
- else if(t.kind==='int'){const m=Math.floor(el/60),s=el%60,it=t.w.items[m%t.w.items.length];rest=s>=40;clock=String(Math.ceil(rest?60-s:40-s));now=rest?'REST':it.n;sub=rest?`next: ${t.w.items[(m+1)%t.w.items.length].n}`:`round ${Math.floor(m/t.w.items.length)+1}/${Math.ceil(t.total/60/t.w.items.length)} · move ${m%t.w.items.length+1}/${t.w.items.length}`;if(el>=t.total)done=true}
- else if(t.kind==='boss'){const B=t.boss;now=B.n;if(B.cd){clock=fmt(B.cd-el);sub='tap +1 for every rep';if(el>=B.cd)done=true}else{clock=fmt(el);sub=B.test}}
- else if(t.kind==='seq'){let acc=0,i=0;while(i<t.steps.length&&el>=acc+t.steps[i][1]){acc+=t.steps[i][1];i++}
-  if(i>=t.steps.length)done=true;else{const st=t.steps[i];clock=fmt(acc+st[1]-el);now=st[0];sub=`${i+1}/${t.steps.length}${t.steps[i+1]?' · next: '+t.steps[i+1][0]:''}`;rest=/easy|breath|walk/i.test(st[0])}}
- // beeps on second boundaries
+ if(full||!ov.querySelector('.clock'))buildTimer(t);
+ let clock='',sub='',stage='',key='',rest=false,done=false,prog=0;
+ const w=t.w;
+ if(el<0){
+  clock=String(Math.ceil(-el));key='ready';
+  const first=t.kind==='seq'?t.steps[0][0]:t.kind==='boss'?t.boss.test:sayAmt(w.items[0]);
+  stage=stageHTML('READY',t.kind==='seq'?t.label:t.kind==='boss'?t.boss.n:w.name,'',`first: ${first}`);
+ }else if(t.kind==='play'){
+  const cap=t.total,up=w.format==='fortime'||w.format==='chipper';
+  clock=up?fmt(el):fmt(cap-el);if(el>=cap)done=true;
+  const s=stepAt(t,t.pos),n=w.items.length,nx=stepAt(t,t.pos+1),ts=totalSteps(t),last=t.pos+1>=ts;
+  key='p'+t.pos;
+  stage=stageHTML(amtText(s.it.amt*s.mult,s.it.u),s.it.n,s.it.c,last?'finish':amtText(nx.it.amt*nx.mult,nx.it.u)+' '+short(nx.it.n));
+  sub=w.format==='fortime'?`round ${s.round+1} of ${w.rounds||4} · move ${s.idx+1} of ${n} · cap ${fmt(cap)}`:w.format==='chipper'?`move ${s.idx+1} of ${n} · cap ${fmt(cap)}`:w.format==='ladder'?`rung ${s.round+1} · ${s.round} rung${s.round===1?'':'s'} done`:`round ${s.round+1} · ${s.round} done`;
+  prog=up?t.pos/ts:el/cap;
+ }else if(t.kind==='emom'){
+  const m=Math.floor(el/60),n=w.items.length,it=w.items[m%n],nx=w.items[(m+1)%n];
+  clock=fmt(60-(el%60));key='e'+m;if(el>=t.total)done=true;
+  stage=stageHTML(amtText(it.amt,it.u),it.n,'Finish the reps, rest the rest of the minute.',m+1<t.total/60?amtText(nx.amt,nx.u)+' '+short(nx.n):'finish');
+  sub=`minute ${Math.min(m+1,t.total/60)} of ${t.total/60}`;prog=el/t.total;
+ }else if(t.kind==='int'){
+  const m=Math.floor(el/60),s=el%60,n=w.items.length,it=w.items[m%n],nx=w.items[(m+1)%n],work=t.work;
+  rest=s>=work;clock=String(Math.ceil(rest?60-s:work-s));key='i'+m+(rest?'r':'w');if(el>=t.total)done=true;
+  stage=rest?stageHTML('REST','breathe',`next: ${nx.n}`,''):stageHTML(`${work}s`,it.n,it.c,`rest, then ${short(nx.n)}`);
+  sub=`round ${Math.floor(m/n)+1} of ${Math.ceil(t.total/60/n)} · move ${m%n+1} of ${n}`;prog=el/t.total;
+ }else if(t.kind==='boss'){
+  const B=t.boss;key='b';
+  if(B.cd){clock=fmt(B.cd-el);if(el>=B.cd)done=true;prog=el/B.cd}else{clock=fmt(el)}
+  stage=stageHTML(B.n,B.test,'','');sub=B.cd?'tap +1 for every rep':'tap Stop when you are done';
+ }else if(t.kind==='seq'){
+  const {i,acc}=seqPos(t,el);
+  if(i>=t.steps.length)done=true;
+  else{const st=t.steps[i];clock=fmt(acc+st[1]-el);key='s'+i;rest=/easy|breath|walk/i.test(st[0]);
+   stage=stageHTML(fmt(st[1]),st[0],'',t.steps[i+1]?t.steps[i+1][0]:'finish');sub=`${i+1} of ${t.steps.length} · ${t.label}`;prog=el/t.total}
+ }
+ // sounds + voice on second boundaries
  const sec=Math.floor(el);
  if(t.run&&sec!==t.last){
   t.last=sec;
   if(el<0&&sec>-4)beep(520,.08);
-  if(sec===0)beep(990,.35);
-  if(t.kind==='emom'||t.kind==='int'){const s=((sec%60)+60)%60;if(sec>0&&s===0)beep(990,.3);if(t.kind==='int'&&s===40)beep(440,.3);if(s>=57||(t.kind==='int'&&s>=37&&s<40))beep(660,.06)}
-  if(t.kind==='seq'&&sec>0){let acc=0;for(const st of t.steps){acc+=st[1];if(acc===sec){beep(990,.3);break}if(acc-sec>0&&acc-sec<=3){beep(660,.06);break}}}
-  if((t.kind==='amrap'||t.kind==='up')&&sec>0&&sec%60===0)beep(780,.05);
+  if(sec===0){beep(990,.35);if(t.kind==='play')say(`Go. ${sayAmt(w.items[0])}`);else if(t.kind==='int')say(`Go. ${spoken(w.items[0].n)}`);else if(t.kind==='emom')say(`Minute 1. ${sayAmt(w.items[0])}`)}
+  if(sec>0&&(t.kind==='play'||(t.kind==='boss'&&t.boss.cd))){
+   const cap=t.kind==='boss'?t.boss.cd:t.total;
+   if(sec===Math.floor(cap/2)&&cap>=120)say('Halfway');
+   if(cap-sec===60&&cap>=180)say('One minute left');
+   if(cap-sec===10)say('Ten seconds');
+   if(cap-sec<=3&&cap-sec>0)beep(660,.06);
+   if(t.kind==='play'&&sec%60===0)beep(780,.05);
+  }
+  if(t.kind==='emom'&&sec>0){const s=sec%60,m=sec/60;if(s===0&&m<t.total/60){beep(990,.3);say(`Minute ${m+1}. ${sayAmt(w.items[m%w.items.length])}`)}if(s>=57)beep(660,.06)}
+  if(t.kind==='int'&&sec>0){const s=sec%60,m=Math.floor(sec/60),n=w.items.length;
+   if(s===0&&sec<t.total){beep(990,.3);say(`Go. ${spoken(w.items[m%n].n)}`)}
+   if(s===t.work){beep(440,.3);say(`Rest. Next, ${spoken(w.items[(m+1)%n].n)}`)}
+   if((s>=57)||(s>=t.work-3&&s<t.work))beep(660,.06)}
+  if(t.kind==='seq'&&sec>0){const {i,acc}=seqPos(t,sec);if(acc===sec&&i<t.steps.length){beep(990,.3);say(t.steps[i][0])}else{const p=seqPos(t,sec+3);if(p.i>i&&i<t.steps.length)beep(660,.06)}}
  }
- if(done&&t.run){t.acc=elapsed();t.run=false;beep(990,.6);setTimeout(()=>beep(990,.6),400);finishTimer(true);return}
- if(full||!ov.querySelector('.clock')){
-  ov.innerHTML=`<div class="prompt">$ <i>rep</i> run ${esc(t.w?t.w.name:t.label)}</div>
-  <div class="clock"></div><div class="now"></div><div class="sub"></div>
-  ${t.kind==='amrap'||(t.kind==='boss'&&t.boss.cd)?`<div class="counter"><button data-a="tm" data-v="-1">−</button><b id="cnt">${t.rounds}</b><button class="pri" data-a="tm" data-v="1">+1</button></div>`:''}
-  <div class="body">${t.w?`<div class="list">${t.w.items.map(i=>`<div class="row"><span class="amt">${t.w.format==='ladder'?'+'+amtText(i.amt,i.u):amtText(i.amt,i.u)}</span><span class="nm">${esc(i.n)}</span></div>`).join('')}</div>${t.w.rounds?`<div class="small muted" style="margin-top:8px">${t.w.rounds} rounds</div>`:''}`:''}</div>
-  <div class="btns"><button data-a="tpause" id="tpause">Pause</button><button class="pri" data-a="tfinish">${t.kind==='seq'?'Done':t.kind==='boss'&&!t.boss.cd?'Stop':'Finish'}</button></div>
-  <button class="ghost sm" data-a="tquit">Quit without saving</button>`;
- }
+ if(done&&t.run){t.acc=elapsed();t.run=false;beep(990,.6);setTimeout(()=>beep(990,.6),400);say(t.kind==='seq'?'Done.':'Time. Nice work.');finishTimer(true);return}
  const c=ov.querySelector('.clock');c.textContent=clock;c.classList.toggle('rest',rest);
- ov.querySelector('.now').textContent=now;ov.querySelector('.sub').textContent=sub;
+ if(key!==t.stage){t.stage=key;ov.querySelector('.stage').innerHTML=stage;const q=ov.querySelector('.queue');if(q)q.innerHTML=queueHTML(t,el)}
+ ov.querySelector('.sub').textContent=sub;
+ const bar=ov.querySelector('.tbar i');if(bar)bar.style.width=Math.round(Math.max(0,Math.min(1,prog))*100)+'%';
  const pb=$('#tpause');if(pb)pb.textContent=t.run?'Pause':'Resume';
+ const db=$('#tdone');if(db)db.disabled=el<0;
 }
-const short=n=>n.split(' · ')[0];
-function firstMove(t){const i=t.w.items[0];return `${amtText(i.amt,i.u)} ${i.n}`}
+// the round at a glance: done, current, and what is left
+function queueHTML(t,el){
+ if(el<0)return '';
+ const row=(mark,amt,name,cls)=>`<div class="q ${cls}"><span class="qm">${mark}</span><span class="qa">${esc(amt)}</span><span class="qn">${esc(name)}</span></div>`;
+ if(t.kind==='play'){const s=stepAt(t,t.pos),w=t.w;
+  return `<div class="qh">${w.format==='ladder'?'rung '+(s.round+1):w.format==='chipper'?'the list':'round '+(s.round+1)}</div>`+w.items.map((it,i)=>row(i<s.idx?'✓':i===s.idx?'▸':'·',amtText(it.amt*s.mult,it.u),short(it.n),i<s.idx?'d':i===s.idx?'c':'')).join('')}
+ if(t.kind==='emom'||t.kind==='int'){const m=Math.floor(el/60),n=t.w.items.length;
+  return `<div class="qh">this cycle</div>`+t.w.items.map((it,i)=>row(i<m%n?'✓':i===m%n?'▸':'·',t.kind==='int'?t.work+'s':amtText(it.amt,it.u),short(it.n),i<m%n?'d':i===m%n?'c':'')).join('')}
+ if(t.kind==='seq'){const {i}=seqPos(t,el);return t.steps.slice(i+1,i+4).map(st=>row('·',fmt(st[1]),st[0],'')).join('')}
+ return '';
+}
+function buildTimer(t){
+ const ov=$('#tmr'),w=t.w,title=w?w.name:t.label;
+ const main=t.kind==='play'?`<div class="playbtns"><button data-a="tback" aria-label="Back one move">‹ Back</button><button class="pri" id="tdone" data-a="tdone">DONE ✓</button></div>`
+  :t.kind==='boss'&&t.boss.cd?`<div class="counter"><button data-a="tm" data-v="-1" aria-label="Minus one">−</button><b id="cnt">${t.rounds||0}</b><button class="pri" data-a="tm" data-v="1">+1</button></div>`
+  :t.kind==='seq'?`<div class="playbtns"><button data-a="tskip" aria-label="Skip this step">Skip ›</button></div>`:'';
+ ov.innerHTML=`<div class="thead"><div class="prompt">$ <i>run</i> ${esc(title)}</div>${w?`<span class="tag a">${esc(fmtL(w))}</span>`:''}</div>
+ <div class="tbar"><i></i></div>
+ <div class="clock ${t.kind==='play'||t.kind==='int'||t.kind==='emom'?'mid':''}"></div>
+ <div class="stage"></div><div class="sub"></div><div class="grow"><div class="queue"></div></div>
+ ${main}
+ <div class="btns tctl"><button class="sm" data-a="tpause" id="tpause">Pause</button><button class="sm" data-a="tmute" id="tmute">${voiceOn()?'Voice on':'Voice off'}</button><button class="sm" data-a="tfinish">${t.kind==='seq'?'Done':t.kind==='boss'&&!t.boss.cd?'Stop':'Finish'}</button></div>
+ <button class="ghost sm" data-a="tquit">Quit without saving</button>`;
+ t.stage=null;
+}
 function finishTimer(auto){
  const t=S.timer;if(!t)return;const el=Math.max(0,Math.round(elapsed()));
  if(t.kind==='boss'){
   const B=t.boss;closeTimer();
-  S.bossDraft={id:B.id,v:B.cd?String(t.rounds):B.unit==='time'?fmt(el):String(el)};
-  S.tab='hero';S.heroTab='boss';S.flash=`> ${B.n}: ${B.cd?t.rounds+' reps':B.unit==='time'?fmt(el):el+'s'}. Check it, then tap Log.`;render();
+  S.bossDraft={id:B.id,v:B.cd?String(t.rounds||0):B.unit==='time'?fmt(el):String(el)};
+  S.tab='hero';S.heroTab='boss';S.flash=`> ${B.n}: ${B.cd?(t.rounds||0)+' reps':B.unit==='time'?fmt(el):el+'s'}. Check it, then tap Log.`;render();
   setTimeout(()=>$('#boss-'+B.id)?.scrollIntoView({block:'center'}),50);return;
  }
  if(t.kind==='seq'){
   closeTimer();
-  editDay(t.k,d=>{if(t.which==='warm')d.warm=true;if(t.which==='cool')d.cool=true;if(t.which==='mob')d.mob={...(d.mob||{}),done:true,routine:mobFor(t.k).name};if(t.which==='run'){d.run={...(d.run||{}),plan:runFor(t.k).name,time:d.run?.time??el}}});
-  render();return;
+  const m=withXP(()=>editDay(t.k,d=>{if(t.which==='warm')d.warm=true;if(t.which==='cool')d.cool=true;if(t.which==='mob')d.mob={...(d.mob||{}),done:true,routine:mobFor(t.k).name};if(t.which==='run'){d.run={...(d.run||{}),plan:runFor(t.k).name,time:d.run?.time??el}}}));
+  if(m.length)S.flash='> '+m.join('\n');render();return;
  }
- const pr={};if(t.kind==='up')pr.time=Math.min(el,t.total);if(t.kind==='amrap')pr.rounds=t.rounds;
+ const w=t.w,pr={};
+ if(w.format==='fortime'||w.format==='chipper')pr.time=Math.min(el,t.total);
+ if(w.format==='amrap'||w.format==='ladder'){
+  const n=w.items.length;pr.rounds=Math.floor(t.pos/n);
+  if(w.format==='amrap'){let reps=0;for(let i=0;i<t.pos%n;i++){const it=w.items[i];if(it.u!=='sec')reps+=it.u==='side'?it.amt*2:it.amt}if(reps)pr.reps=reps}
+ }
  closeTimer();S.pendingResult=pr;S.form=t.k;S.rating=null;S.view=t.k;S.tab='today';render();
  setTimeout(()=>$('#r-notes')?.scrollIntoView({block:'center'}),50);
 }
 Object.assign(ACT,{
- tm:b=>{const t=S.timer;t.rounds=Math.max(0,t.rounds+ +b.dataset.v);$('#cnt').textContent=t.rounds;beep(880,.04)},
- tpause:()=>{const t=S.timer;if(t.run){t.acc=elapsed();t.run=false}else{t.t0=Date.now();t.run=true}drawTimer(false)},
+ tm:b=>{const t=S.timer;t.rounds=Math.max(0,(t.rounds||0)+ +b.dataset.v);$('#cnt').textContent=t.rounds;beep(880,.04)},
+ tdone:()=>{const t=S.timer;if(!t||elapsed()<0)return;t.pos++;beep(880,.05);
+  if(t.pos>=totalSteps(t)){t.acc=elapsed();t.run=false;say('Done. Nice work.');finishTimer(false);return}
+  const s=stepAt(t,t.pos),pre=s.idx===0?(t.w.format==='ladder'?`Rung ${s.round+1}. `:t.w.format==='chipper'?'':`Round ${s.round+1}. `):'';
+  say(pre+sayAmt(s.it,s.mult));drawTimer(false)},
+ tback:()=>{const t=S.timer;if(!t||t.pos<=0)return;t.pos--;drawTimer(false)},
+ tskip:()=>{const t=S.timer;if(!t)return;const el=Math.max(0,elapsed()),{i,acc}=seqPos(t,el);if(i>=t.steps.length)return;t.acc=acc+t.steps[i][1];t.t0=Date.now();t.last=null;drawTimer(false)},
+ tmute:b=>{S.muted=!S.muted;try{speechSynthesis.cancel()}catch(e){}b.textContent=voiceOn()?'Voice on':'Voice off'},
+ tpause:()=>{const t=S.timer;if(t.run){t.acc=elapsed();t.run=false;try{speechSynthesis.cancel()}catch(e){}}else{t.t0=Date.now();t.run=true}drawTimer(false)},
  tfinish:()=>finishTimer(false),
  tquit:()=>{closeTimer();render()}
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.timer&&S.timer.run)lockScreen()});
+
+/* ============ estimates ============ */
+// seconds per rep by movement pattern, used to estimate For Time / Chipper length
+const PACE={push:2.2,vpush:2.6,dip:2.2,pull:3.6,row:2.6,arms:2.5,squat:2.2,lunge:2.6,hinge:2.3,core:2.6,burpee:4.5,cardio:1.3,sprint:28};
+function itemSecs(it,mult=1){const n=it.amt*mult;if(it.u==='sec')return n;return (it.u==='side'?n*2:n)*(PACE[it.pat]||2.5)}
+function estimateMins(w){
+ if(w.format==='intervals')return (w.rounds||4)*w.items.length;
+ if(w.format==='amrap'||w.format==='ladder'||w.format==='emom')return w.mins||20;
+ const rounds=w.format==='fortime'?(w.rounds||4):1;
+ const work=w.items.reduce((a,it)=>a+itemSecs(it),0)*rounds;
+ const trans=w.items.length*rounds*8;
+ return Math.min(w.mins||20,Math.max(4,Math.round((work*1.15+trans)/60)));
+}
+function difficulty(w){
+ const base={fortime:3,chipper:3.5,amrap:3,emom:2.5,intervals:3,ladder:3}[w.format]||3;
+ const vols=w.items.map(it=>(S.profile.levels[it.pat]||{v:1}).v),v=vols.reduce((a,b)=>a+b,0)/vols.length;
+ let d=base+(v-1)*4+((w.mins||20)-20)/10;
+ if(w.items.some(it=>it.pat==='burpee'||it.pat==='sprint'))d+=.5;
+ if(w.format==='fortime'&&estimateMins(w)>=(w.mins||20))d+=.5;
+ if(w.deload)d-=1;if(w.recovery)d-=1;
+ return Math.max(1,Math.min(5,Math.round(d)));
+}
+const dots=n=>'●'.repeat(n)+'○'.repeat(5-n);
+
+/* ============ undo ============ */
+let toastT=null;
+function undoable(label,fn){
+ const dk=dayId(S.view),ds=S.days[dk]?structuredClone(S.days[dk]):null,ps=structuredClone(S.profile);
+ const r=fn();S.undo={label,dk,ds,ps};showToast();return r;
+}
+function showToast(){
+ const el=$('#toast');if(!el||!S.undo)return;
+ el.innerHTML=`<span>${esc(S.undo.label)}</span><button class="sm" data-a="undo">Undo</button>`;el.hidden=false;
+ clearTimeout(toastT);toastT=setTimeout(hideToast,5000);
+}
+function hideToast(){const el=$('#toast');if(el)el.hidden=true;S.undo=null}
+function doUndo(){
+ const u=S.undo;if(!u)return;
+ if(u.ds)S.days[u.dk]=u.ds;else S.days[u.dk]={date:u.dk.slice(2)};save(u.dk);
+ S.profile=u.ps;save('profile');clearGen();hideToast();S.flash='> Undone.';render();
+}
+
+/* ============ readiness check-in ============ */
+const CI=[['sleep','Sleep','rough','great'],['sore','Soreness','none','very sore'],['energy','Energy','low','high']];
+const ciScore=c=>Math.round(((c.sleep)+(6-c.sore)+(c.energy))/3*10)/10;
+const RECOVERY_AT=2.3;
+function vSheet(){
+ if(S.sheet!=='checkin')return '';
+ const c=S.ci||{sleep:3,sore:3,energy:3},sc=ciScore(c),rec=sc<=RECOVERY_AT;
+ return `<div class="sheet-bg" data-a="sheetclose"></div><div class="sheet" role="dialog" aria-label="Readiness check-in">
+ <div class="prompt">$ <i>readiness</i> --check</div>
+ <div class="boxh"><h2>HOW ARE YOU TODAY?</h2></div>
+ ${CI.map(([f,l,lo,hi])=>`<div class="cirow"><div class="cil"><b>${l}</b><span class="muted small">1 ${lo} · 5 ${hi}</span></div><div class="cib">${[1,2,3,4,5].map(n=>`<button class="sm ${c[f]===n?'on':''}" data-a="ci" data-f="${f}" data-v="${n}" aria-label="${l} ${n}">${n}</button>`).join('')}</div></div>`).join('')}
+ <div class="${rec?'warnbox':'small muted'}">Readiness ${sc.toFixed(1)} / 5 · ${rec?'recovery mode: about 20% less volume today':'normal workout'}</div>
+ <div class="btns"><button class="pri" data-a="cisave">▶ Start workout</button></div>
+ <button class="ghost sm" data-a="sheetclose">Cancel</button></div>`;
+}
+function saveCheckin(){
+ const k=S.view,c=S.ci||{sleep:3,sore:3,energy:3},score=ciScore(c);
+ editDay(k,d=>{d.checkin={...c,score};if(d.workout&&!d.workout.result)delete d.workout});
+ S.sheet=null;render();launchWorkout(k);
+}
+
+/* ============ calibration ============ */
+const CALIB={
+ pushups:{pat:'push',map:v=>v<8?0:v<20?1:v<35?2:v<50?3:v<65?4:5},
+ pullups:{pat:'pull',map:v=>v<3?0:v<5?1:v<9?2:v<13?3:S.profile.equip.db10?4:3},
+ plank:{pat:'core',map:v=>v<45?4:v<90?7:v<150?10:12},
+ furnace:{pat:'burpee',map:v=>v<25?0:v<45?1:v<60?2:3}
+};
+const calibPending=()=>Object.keys(CALIB).filter(id=>!(S.profile.calib||{})[id]&&!((S.profile.bosses||{})[id]||[]).length);
+// first fight of a calibration boss sets that pattern's starting level; skills that unlocks pay no XP
+function calibrate(id,v){
+ const C=CALIB[id];if(!C||(S.profile.calib||{})[id])return null;
+ const before=new Set(ALL_NODES.filter(nodeMet).map(n=>n.id));
+ const i=Math.max(0,Math.min(PAT[C.pat].ladder.length-1,C.map(v)));
+ editProfile(p=>{p.calib={...(p.calib||{}),[id]:TODAY()};p.levels[C.pat]={i,v:1}});
+ const fresh=ALL_NODES.filter(n=>n.r.lad&&nodeMet(n)&&!before.has(n.id)).map(n=>n.id);
+ if(fresh.length)editProfile(p=>{p.base=[...new Set([...(p.base||[]),...fresh])]});
+ const ex=exerciseFor(C.pat,null,S.profile.levels[C.pat],'home');
+ return `CALIBRATED ${PAT[C.pat].label}: starting at ${ex?ex.n:'level '+(i+1)}`;
+}
+
+/* ============ celebrations ============ */
+function celebrate(msgs){
+ const big=msgs.filter(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED/.test(m));
+ if(!big.length)return;
+ const h=computeHero(),lv=big.find(m=>/^LEVEL UP/.test(m));
+ const lines=[`$ sudo ./levelup --user rep`,...big.map(m=>'> '+m.replace(/^UNLOCKED /,'ACHIEVEMENT ').toLowerCase()),`> ${h.xp.toLocaleString()} xp total · level ${h.L} · ${h.title}`];
+ const el=$('#cele');
+ el.innerHTML=`<div class="cbox"><pre class="cbanner">${lv?`LEVEL ${h.L}`:'UNLOCKED'}</pre><div class="ctitle">${lv?esc(h.title):'new loot'}</div><pre class="clines"></pre><div class="small muted">tap anywhere to continue</div></div>`;
+ el.hidden=false;
+ const pre=el.querySelector('.clines'),txt=lines.join('\n');
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches){pre.textContent=txt;return}
+ let i=0;clearInterval(el._t);el._t=setInterval(()=>{i+=2;pre.textContent=txt.slice(0,i)+(i<txt.length?'█':'');if(i>=txt.length)clearInterval(el._t)},18);
+ beep(523,.08);setTimeout(()=>beep(659,.08),110);setTimeout(()=>beep(784,.18),220);
+}
+
+/* ============ weekly report ============ */
+const monOf=k=>addDays(k,-((parseKey(k).getDay()+6)%7));
+function weekReport(mon){
+ const g=S.profile.goals,h=computeHero(),days=Array.from({length:7},(_,i)=>addDays(mon,i));
+ let sessions=0,xp=0,reps=0,prot=0,water=0,logged=0;
+ for(const k of days){const d=getDay(k);if(dayDone(k))sessions++;xp+=h.perDay[k]||0;
+  if(d.workout&&d.workout.result)for(const it of d.workout.items)reps+=estReps(d.workout,it);
+  if(d.protein!=null||d.water!=null){logged++;if(+d.protein>=g.protein)prot++;if(+d.water>=g.water)water++}}
+ const end=days[6],inWk=k=>k>=mon&&k<=end;
+ const prs=[];for(const b of BOSSES){let best=null;for(const e of (S.profile.bosses||{})[b.id]||[]){const better=best==null||(b.lower?e.v<best:e.v>best);if(better&&inWk(e.k)&&best!=null)prs.push(`${b.n} ${bossFmt(b,e.v)}`);best=best==null?e.v:(b.lower?Math.min(best,e.v):Math.max(best,e.v))}}
+ const ups=(S.profile.log||[]).filter(e=>inWk(e.k)&&/▲/.test(e.m)).map(e=>e.m.replace(/^▲ /,''));
+ let streak=0;for(let k=end;k>=S.profile.start&&dayDone(k);k=addDays(k,-1))streak++;
+ return {mon,end,sessions,xp,reps,prot,water,logged,prs,ups,streak};
+}
+function reportHTML(r,dismiss){
+ const md=k=>{const d=parseKey(k);return `${MON[d.getMonth()]} ${d.getDate()}`};
+ return `<div class="box report"><div class="boxh"><h2>WEEK REPORT</h2><span class="tag">${md(r.mon)} – ${md(r.end)}</span></div>
+ <div class="grid3"><div class="stat"><b>${r.sessions}/7</b><span>sessions</span></div><div class="stat"><b>+${r.xp}</b><span>xp</span></div><div class="stat"><b>${r.reps.toLocaleString()}</b><span>reps</span></div></div>
+ <div class="list small">
+ <div class="row"><span class="nm">Protein goal</span><span>${r.prot}/${r.logged||0} days</span></div>
+ <div class="row"><span class="nm">Water goal</span><span>${r.water}/${r.logged||0} days</span></div>
+ <div class="row"><span class="nm">Streak at week end</span><span>${r.streak} days</span></div>
+ ${r.prs.length?`<div class="row"><span class="nm">New records</span><span>${esc(r.prs.join(', '))}</span></div>`:''}
+ ${r.ups.length?`<div class="row"><span class="nm">Level-ups</span><span>${esc(r.ups.join(', '))}</span></div>`:''}
+ </div>${dismiss?`<button class="sm" data-a="repseen" data-v="${r.mon}">Got it</button>`:''}</div>`;
+}
+function pendingReport(){
+ const last=addDays(monOf(TODAY()),-7);
+ if(addDays(last,6)<S.profile.start)return null;
+ if((S.profile.seenReports||[]).includes(last))return null;
+ const r=weekReport(last);return (r.sessions||r.logged)?r:null;
+}
 
 /* ============ import ============ */
 function importBackup(file){
