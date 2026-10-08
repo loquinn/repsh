@@ -291,6 +291,11 @@ ol.steps{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap
 .mvrow.hid{opacity:.5}
 .favb{min-height:36px;min-width:36px;padding:0;font-size:18px;background:transparent;border:1px solid var(--line)}
 .favb.on{color:var(--amber);border-color:var(--amber)}
+.foods{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.foods .chip{min-height:34px;padding:4px 10px;font-weight:400;font-size:12px}.foods .chip b{color:var(--accent);font-weight:600}
+.foodadd{display:grid;grid-template-columns:1fr 70px auto;gap:6px;margin-top:8px}
+.codelink{align-self:flex-start;font-size:12.5px;color:var(--dim)}
+.codebox textarea,#share-out{font-size:13px;min-height:60px;word-break:break-all}
 pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:auto}
 </style>
 
@@ -892,6 +897,45 @@ function vMoves(){
  <div class="box">${list||'<div class="muted small">No moves match.</div>'}</div>`;
 }
 
+
+/* ============ protein quick-adds ============ */
+const DEFAULT_FOODS=[['Protein shake',25],['3 eggs',18],['Chicken breast',35],['Greek yogurt',17],['Tuna can',25]];
+const foods=()=>Array.isArray(S.profile.foods)?S.profile.foods:DEFAULT_FOODS;
+function vFoods(){
+ const f=foods();
+ let h=`<div class="foods">${f.map(([n,g],i)=>`<button class="sm chip" data-a="food" data-v="${i}">${esc(n)} <b>+${g}g</b></button>`).join('')}<button class="lnk" data-a="foodedit">${S.foodEdit?'done':'edit'}</button></div>`;
+ if(S.foodEdit)h+=`<div class="box" style="background:var(--panel2)"><div class="list small">${f.map(([n,g],i)=>`<div class="row"><span class="nm">${esc(n)} · ${g} g</span><button class="sm" data-a="fooddel" data-v="${i}" aria-label="Remove ${esc(n)}">Remove</button></div>`).join('')}</div>
+  <div class="foodadd"><input id="food-n" maxlength="24" placeholder="Food, e.g. 2 scrambled eggs" aria-label="Food name"><input id="food-g" type="number" inputmode="numeric" placeholder="g" aria-label="Protein grams"><button class="sm pri" data-a="foodadd">Add</button></div></div>`;
+ return h;
+}
+
+/* ============ sleep ============ */
+const sleepRating=h=>h==null||h===''?null:h<5?1:h<6?2:h<7?3:h<8?4:5;
+
+/* ============ workout codes ============ */
+const b64e=str=>btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d=str=>decodeURIComponent(escape(atob(str.replace(/-/g,'+').replace(/_/g,'/'))));
+function encodeWorkout(w){return 'REP1.'+b64e(JSON.stringify({n:w.name,f:w.format,m:w.mins||20,r:w.rounds||null,l:w.loc||'home',t:w.type,i:w.items.map(it=>[it.id,it.amt,it.u,it.pat]),x:w.fin?w.fin.id:0}))}
+function decodeWorkout(text){
+ const m=String(text||'').match(/REP1\.([A-Za-z0-9_-]+)/);if(!m)throw new Error('no rep.sh code found');
+ let o;try{o=JSON.parse(b64d(m[1]))}catch(e){throw new Error('the code looks damaged or cut off')}
+ if(!FORMATS[o.f]||!Array.isArray(o.i)||!o.i.length)throw new Error('the code is incomplete');
+ const loc=o.l==='yard'?'yard':'home';
+ const items=o.i.map(([id,amt,u,pat])=>{const e=exById(id);return {pat:PAT[pat]?pat:(e?e.pat:'cardio'),id,n:locText(e?e.ex.n:id,loc),u:['reps','side','sec'].includes(u)?u:'reps',c:e?locText(e.ex.c||'',loc):'',amt:Math.max(1,Math.min(999,+amt||1))}});
+ const fe=o.x&&exById(o.x),fi=items.find(it=>it.id===o.x);
+ return {type:TEMPLATES[o.t]&&TEMPLATES[o.t].slots?o.t:'fbA',title:'SHARED WORKOUT',format:o.f,name:String(o.n||'SHARED').slice(0,20).toUpperCase(),deload:false,recovery:false,loc,mins:[10,20,30].includes(+o.m)?+o.m:20,rounds:o.r||null,items,fin:fi?{id:fi.id,n:fi.n,u:fi.u,pat:fi.pat}:null,shared:true};
+}
+function resultText(w){const r=w.result||{};return r.time!=null?fmt(r.time):r.rounds!=null?`${r.rounds}${r.reps?'+'+r.reps:''} ${w.format==='ladder'?'rungs':'rounds'}`:'done'}
+async function shareText(text,okMsg){
+ try{if(navigator.share){await navigator.share({text});S.flash=okMsg;render();return}}catch(e){if(e&&e.name==='AbortError')return}
+ try{await navigator.clipboard.writeText(text);S.flash=okMsg+' Copied to your clipboard.';render();return}catch(e){}
+ S.shareFallback=text;S.flash='> Copy the code below and send it.';render();
+}
+function vCodeBox(){
+ return `<div class="box codebox"><div class="boxh"><h2>ENTER A CODE</h2></div><div class="small muted">Paste a workout code someone sent you. It replaces today's workout until you log it.</div>
+ <textarea id="code-in" placeholder="REP1.eyJu..."></textarea><div class="btns"><button class="pri sm" data-a="loadcode">Load workout</button><button class="ghost sm" data-a="codebox">Cancel</button></div></div>`;
+}
+
 /* ============ RPG layer ============ */
 let HERO=null;
 const TITLES=[[1,'guest'],[3,'user'],[5,'sudoer'],[8,'sysadmin'],[12,'kernel hacker'],[16,'daemon'],[20,'root'],[30,'architect']];
@@ -1042,6 +1086,7 @@ function vToday(){
  if(isToday&&!T.rest&&!dayDone(k)&&missedBefore(k))h+=`<div class="box quest"><div class="boxh"><h2>COMEBACK QUEST</h2><span class="tag am">+100 XP</span></div><div class="small">You missed your last planned day. That's normal. Any session today gets a 100 XP bonus. Getting back quickly matters more than anything else.</div>${T.slots&&dayMins(k)>10&&!(d.workout&&d.workout.result)?'<button class="sm" data-a="setmins" data-v="10">Make it a 10-minute version</button>':''}</div>`;
  if(isToday&&window.REPSH_APP&&allDayKeys().length>=3&&(!S.profile.lastExport||daysBetween(S.profile.lastExport,TODAY())>=14))h+=`<button class="bossbar" data-a="export">⇩ Back up your log · last backup ${S.profile.lastExport?daysBetween(S.profile.lastExport,TODAY())+' days ago':'never'} ›</button>`;
  if(isToday){const rp=pendingReport();if(rp)h+=reportHTML(rp,true)}
+ if(S.shareFallback)h+=`<div class="box"><textarea readonly id="share-out">${esc(S.shareFallback)}</textarea><button class="sm" data-a="sharedone">Done</button></div>`;
  if(S.flash)h+=`<div class="flash">${esc(S.flash)}</div>`;
  if(T.slots){
   const locked=!!(d.workout&&d.workout.result),L=dayLoc(k),M=dayMins(k);
@@ -1049,10 +1094,11 @@ function vToday(){
  }
  {const cal=isToday?calibPending():[];if(cal.length)h+=`<button class="bossbar" data-a="gotoboss">⚔ Calibrate: ${cal.length} quick test${cal.length>1?'s':''} set your starting levels ›</button>`;
  const due=isToday&&!cal.length?bossesDue():[];if(due.length&&!(T.slots&&!(d.workout&&d.workout.result)))h+=`<button class="bossbar" data-a="gotoboss">⚔ ${due.length} boss fight${due.length>1?'s':''} ready${(S.profile.bosses&&Object.keys(S.profile.bosses).length)?'':' · set your baselines'} ›</button>`}
- if(T.slots)h+=vWorkout(k,d);
+ if(T.slots||(d.workout&&d.workout.shared))h+=vWorkout(k,d);
  else if(T.run)h+=vRun(k,d);
  else if(T.rest)h+=vRest(k,d);
  else h+=vMob(k,d);
+ if(!(d.workout&&d.workout.result))h+=S.codeBox?vCodeBox():`<button class="lnk codelink" data-a="codebox">⌨ Enter a workout code</button>`;
  h+=vHabits(k,d);
  return h;
 }
@@ -1085,17 +1131,18 @@ function vWorkout(k,d){
   <div class="code">${esc(w.name)}</div>
   <div class="chipsrow"><span class="tag">~${estimateMins(w)} min</span><span class="tag" aria-label="Difficulty ${difficulty(w)} of 5">${dots(difficulty(w))}</span>${d.checkin?`<span class="tag ${w.recovery?'am':'ok'}">ready ${d.checkin.score.toFixed(1)}</span>`:''}</div>
   <div class="muted small">${esc(fmtD(w))}${w.deload?' <span style="color:var(--amber)">Deload week: volume at 75%.</span>':''}</div>
-  ${w.recovery?'<div class="warnbox">Recovery mode: about 20% less volume today, from your check-in.</div>':''}
+  ${w.shared?'<div class="small" style="color:var(--amber)">Shared workout from a code. Swap any move you can\'t do.</div>':''}${w.recovery?'<div class="warnbox">Recovery mode: about 20% less volume today, from your check-in.</div>':''}
   <div class="list">${w.items.map((it,i)=>`<div class="row"><span class="amt">${w.format==='ladder'?'+'+amtText(it.amt,it.u):w.format==='emom'?'M'+(i+1):amtText(it.amt,it.u)}</span><span class="nm">${w.format==='emom'?amtText(it.amt,it.u)+' · ':''}${esc(it.n)}<small>${esc(it.c||'')} <a class="demo" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(it.n)+' exercise form')}" target="_blank" rel="noopener">demo ↗</a>${done?'':` <button class="lnk" data-a="swap" data-v="${i}">⇄ swap</button> <button class="lnk" data-a="ban" data-v="${i}">⊘ hide</button>`}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}${w.fin?`<div class="row fin"><span class="amt">MAX</span><span class="nm">Finisher · ${esc(w.fin.n)}<small>${w.fin.u==='sec'?'One max hold':'One set of max reps'} after the workout. Stop one rep before your form breaks.${(()=>{const b=finBest(w.fin.id);return b?` Record: ${b.v}.`:''})()}</small></span><span class="pat">PR</span></div>`:''}</div>`;
  if(done){
   const r=w.result;
   h+=`<div class="grid3"><div class="stat"><b>${r.time!=null?fmt(r.time):(r.rounds!=null?r.rounds+(r.reps?'+'+r.reps:''):'✓')}</b><span>${r.time!=null?'time':r.rounds!=null?(w.format==='ladder'?'rungs':'rounds'):'complete'}</span></div><div class="stat"><b>${{easy:'EZ',right:'OK',hard:'HARD'}[r.rating]||'—'}</b><span>felt</span></div><div class="stat"><b>${(r.prog||[]).length}</b><span>adjustments</span></div></div>
   ${r.notes?`<div class="small muted">› ${esc(r.notes)}</div>`:''}
+  <div class="btns"><button class="ghost sm" data-a="shareresult">⇪ Share result + code</button></div>
   <details><summary class="small">Edit result</summary>${vResultForm(k,w)}</details>`;
  }else if(S.form===k){
   h+=vResultForm(k,w);
  }else{
-  h+=`<div class="btns"><button class="ghost sm" data-a="reroll">↻ Reroll workout</button><button class="ghost sm" data-a="logmanual">Log without timer</button></div>`;
+  h+=`<div class="btns"><button class="ghost sm" data-a="reroll">↻ Reroll</button><button class="ghost sm" data-a="logmanual">Log without timer</button><button class="ghost sm" data-a="sharecode">⇪ Share</button></div>`;
  }
  h+=`</div>`;
  h+=`<div class="box"><details ${done&&!d.cool?'open':''}><summary><span>Cool-down · ${Math.round(seqSecs(cool)/60)} min</span><span class="tag ${d.cool?'ok':''}" style="margin-left:auto">${d.cool?'done':'stretch'}</span></summary>
@@ -1146,10 +1193,12 @@ function vHabits(k,d){
  return `<div class="box"><div class="boxh"><h2>DAILY</h2><button class="sm tag-btn" data-a="healthimport">⇩ Import from Health</button></div>
  ${S.healthBox?`<div class="box" style="background:var(--panel2)"><div class="small">Paste what your rep.sh Shortcut copied (long-press → Paste), then tap Import. No Shortcut yet? Setup → Apple Health has the steps.</div><textarea id="health-paste" placeholder="steps: 8432&#10;water: 64&#10;protein: 120&#10;weight: 154.2"></textarea><div class="btns"><button class="pri sm" data-a="healthparse">Import</button><button class="ghost sm" data-a="healthcancel">Cancel</button></div></div>`:''}
  ${meter('Protein · +20xp',d.protein,g.protein,'g','protein',[-10,10,25,40])}
+ ${vFoods()}
  ${meter('Water · +10xp',d.water,g.water,'oz','water',[-8,8,16,24])}
  ${meter('Walk · +15xp',d.walk,g.walk,'min','walk',[-5,10,20,30])}
- <div class="grid2"><label>Weight (lb)<input data-f="weight" type="number" step="0.1" inputmode="decimal" value="${d.weight??''}" placeholder="154.0"></label>
- <label>Steps (optional)<input data-f="steps" type="number" inputmode="numeric" value="${d.steps??''}"></label></div>
+ <div class="grid3"><label>Weight lb<input data-f="weight" type="number" step="0.1" inputmode="decimal" value="${d.weight??''}" placeholder="154.0"></label>
+ <label>Steps<input data-f="steps" type="number" inputmode="numeric" value="${d.steps??''}"></label>
+ <label>Sleep h<input data-f="sleep" type="number" step="0.1" inputmode="decimal" value="${d.sleep??''}" placeholder="7.5"></label></div>
  <div class="grid2"><label>First meal<input data-f="eat1" type="time" value="${d.eat1??''}"></label><label>Last meal<input data-f="eat2" type="time" value="${d.eat2??''}"></label></div>
  ${d.eat1&&d.eat2?`<div class="small muted">Eating window ${fmtWindow(d.eat1,d.eat2)}</div>`:''}
  </div>`;
@@ -1237,6 +1286,7 @@ function vStats(){
  <div class="box"><div class="boxh"><h2>PROTEIN</h2><span class="tag">g / day</span></div>${barChart(series('protein'),{goal:g.protein,unit:'g'})}</div>
  <div class="box"><div class="boxh"><h2>WATER</h2><span class="tag">oz / day</span></div>${barChart(series('water'),{goal:g.water,unit:' oz'})}</div>
  <div class="box"><div class="boxh"><h2>WALK</h2><span class="tag">min / day</span></div>${barChart(series('walk'),{goal:g.walk,unit:' min'})}</div>
+ ${ks.some(k=>getDay(k).sleep)?`<div class="box"><div class="boxh"><h2>SLEEP</h2><span class="tag">hours</span></div>${barChart(ks.map(k=>({k,v:getDay(k).sleep??null})),{goal:7,unit:' h',goalLabel:'7 h',fmtV:v=>Math.round(v*10)/10})}</div>`:''}
  ${hasSteps?`<div class="box"><div class="boxh"><h2>STEPS</h2></div>${barChart(steps,{fmtV:v=>Math.round(v).toLocaleString()})}</div>`:''}
  ${ks.some(k=>getDay(k).checkin)?`<div class="box"><div class="boxh"><h2>READINESS</h2><span class="tag">check-in 1–5</span></div><div class="small muted">Below ${RECOVERY_AT} switches on recovery mode.</div>${barChart(ks.map(k=>({k,v:getDay(k).checkin?getDay(k).checkin.score:null})),{goal:RECOVERY_AT,goalLabel:'recovery below',fmtV:v=>Math.round(v*10)/10})}</div>`:''}
  <div class="box"><div class="boxh"><h2>EATING WINDOW</h2><span class="tag">hours</span></div><div class="small muted">16:8 means fasting 16 hours and eating inside an 8-hour window.</div>${barChart(eat,{goal:8,unit:'h',goalLabel:'8h window',fmtV:v=>Math.round(v*10)/10})}</div>
@@ -1413,6 +1463,17 @@ const ACT={
  export:()=>doExport(),
  swap:b=>{undoable('Move swapped',()=>swapItem(+b.dataset.v,false))},
  undo:()=>doUndo(),
+ food:b=>{const [n,g]=foods()[+b.dataset.v]||[];if(!g)return;const m=undoable(`+${g}g protein · ${n}`,()=>withXP(()=>editDay(S.view,d=>{d.protein=Math.max(0,(+d.protein||0)+g)})));if(m.length)S.flash='> '+m.join('\n');render()},
+ foodedit:()=>{S.foodEdit=!S.foodEdit;render()},
+ fooddel:b=>{const i=+b.dataset.v;editProfile(p=>{const f=[...foods()];f.splice(i,1);p.foods=f});render()},
+ foodadd:()=>{const n=($('#food-n')?.value||'').trim(),g=Math.round(+($('#food-g')?.value||0));if(!n||!(g>0)){S.flash='> Add a food name and its protein in grams.';render();return}editProfile(p=>{p.foods=[...foods(),[n,g]].slice(0,12)});render()},
+ sharecode:()=>{const w=workoutFor(S.view);shareText(`rep.sh workout ${w.name} · ${fmtL(w)} · ~${estimateMins(w)} min\nOpen rep.sh → Today → Enter a workout code:\n${encodeWorkout(w)}`,'> Workout code ready to send.')},
+ shareresult:()=>{const w=workoutFor(S.view);shareText(`rep.sh · ${heroName()||'me'} did ${w.name} (${fmtL(w)}): ${resultText(w)}${w.result&&w.result.fin!=null?` · finisher ${w.result.fin}`:''}\nTry it: rep.sh → Today → Enter a workout code:\n${encodeWorkout(w)}`,'> Result ready to send.')},
+ sharedone:()=>{S.shareFallback=null;S.flash='';render()},
+ codebox:()=>{S.codeBox=!S.codeBox;render();if(S.codeBox)setTimeout(()=>$('#code-in')?.focus(),50)},
+ loadcode:()=>{try{const w=decodeWorkout($('#code-in')?.value);const k=S.view;if(getDay(k).workout&&getDay(k).workout.result){S.flash='> This day already has a logged workout.';render();return}
+  undoable('Loaded shared workout',()=>editDay(k,d=>{d.workout=w}));S.codeBox=false;S.flash=`> Loaded ${w.name} · ${fmtL(w)}. It's today's workout now.`;render();setTimeout(showToast,0)}
+  catch(err){S.flash=`> That code didn't work: ${err.message}. Ask them to send it again.`;render()}},
  fav:b=>{const id=b.dataset.v;editProfile(p=>{const f=new Set(p.fav||[]);f.has(id)?f.delete(id):f.add(id);p.fav=[...f]});render()},
  libg:b=>{S.libG=b.dataset.v;render()},
  libfav:()=>{S.libFav=!S.libFav;render()},
@@ -1530,7 +1591,7 @@ const totalSteps=t=>{const w=t.w,n=w.items.length;return w.format==='fortime'?n*
 
 function startWorkout(){
  const k=S.view,d=getDay(k);
- if(!d.checkin){S.ci={sleep:3,sore:3,energy:3};S.sheet='checkin';render();return}
+ if(!d.checkin){S.ci={sleep:sleepRating(d.sleep)||3,sore:3,energy:3};S.sheet='checkin';render();return}
  launchWorkout(k);
 }
 function launchWorkout(k){
@@ -1737,7 +1798,7 @@ function vSheet(){
  return `<div class="sheet-bg" data-a="sheetclose"></div><div class="sheet" role="dialog" aria-label="Readiness check-in">
  <div class="prompt">$ <i>readiness</i> --check</div>
  <div class="boxh"><h2>HOW ARE YOU TODAY?</h2></div>
- ${CI.map(([f,l,lo,hi])=>`<div class="cirow"><div class="cil"><b>${l}</b><span class="muted small">1 ${lo} · 5 ${hi}</span></div><div class="cib">${[1,2,3,4,5].map(n=>`<button class="sm ${c[f]===n?'on':''}" data-a="ci" data-f="${f}" data-v="${n}" aria-label="${l} ${n}">${n}</button>`).join('')}</div></div>`).join('')}
+ ${CI.map(([f,l,lo,hi])=>`<div class="cirow"><div class="cil"><b>${l}${f==='sleep'&&getDay(S.view).sleep?` <span class="muted small">· ${getDay(S.view).sleep} h logged</span>`:''}</b><span class="muted small">1 ${lo} · 5 ${hi}</span></div><div class="cib">${[1,2,3,4,5].map(n=>`<button class="sm ${c[f]===n?'on':''}" data-a="ci" data-f="${f}" data-v="${n}" aria-label="${l} ${n}">${n}</button>`).join('')}</div></div>`).join('')}
  <div class="${rec?'warnbox':'small muted'}">Readiness ${sc.toFixed(1)} / 5 · ${rec?'recovery mode: about 20% less volume today':'normal workout'}</div>
  <div class="btns"><button class="pri" data-a="cisave">▶ Start workout</button></div>
  <button class="ghost sm" data-a="sheetclose">Cancel</button></div>`;
@@ -1934,18 +1995,20 @@ function finishSetup(){
 
 /* ============ Apple Health import (via a Shortcut that copies a summary) ============ */
 function parseHealth(text){
- const t=String(text||''),out={},keys=['steps','water','protein','weight','waist'];
+ const t=String(text||''),out={},keys=['steps','water','protein','weight','waist','sleep'];
  const re=new RegExp('('+keys.join('|')+')\\s*[:=]','gi'),marks=[];let m;
  while((m=re.exec(t)))marks.push({k:m[1].toLowerCase(),at:m.index,end:re.lastIndex});
  marks.forEach((mk,i)=>{
   const block=t.slice(mk.end,i+1<marks.length?marks[i+1].at:t.length);
   const nums=(block.match(/-?\d[\d,]*\.?\d*/g)||[]).map(x=>parseFloat(x.replace(/,/g,''))).filter(x=>!isNaN(x));
+  if(mk.k==='sleep'){const hm=block.match(/(\d+(?:\.\d+)?)\s*h(?:ou)?r?s?\b/i),mm=block.match(/(\d+)\s*m(?:in)?/i);if(hm||mm){out.sleep=Math.round(((hm?+hm[1]:0)+(mm?+mm[1]/60:0))*10)/10;return}}
   if(!nums.length)return;
   let v=mk.k==='weight'||mk.k==='waist'?nums[nums.length-1]:nums.reduce((a,b)=>a+b,0);
   if(mk.k==='water'&&/\bm[lL]\b/.test(block))v=v/29.574;
   if(mk.k==='water'&&/\bL\b/.test(block)&&!/\bm[lL]\b/.test(block))v=v*33.814;
   if(mk.k==='weight'&&/\bkg\b/i.test(block))v=v*2.2046;
   if(mk.k==='waist'&&/\bcm\b/i.test(block))v=v/2.54;
+  if(mk.k==='sleep'){v=v>1440?v/3600:v>24?v/60:v;out.sleep=Math.round(v*10)/10;return}
   out[mk.k]=Math.round(v*(mk.k==='weight'||mk.k==='waist'?10:1))/(mk.k==='weight'||mk.k==='waist'?10:1);
  });
  return out;
@@ -1957,6 +2020,7 @@ function applyHealth(h){
   if(h.water!=null&&h.water>(+d.water||0)){d.water=Math.round(h.water);got.push(`${d.water} oz water`)}
   if(h.protein!=null&&h.protein>(+d.protein||0)){d.protein=Math.round(h.protein);got.push(`${d.protein} g protein`)}
   if(h.weight&&h.weight>50){d.weight=h.weight;got.push(`${h.weight} lb`)}
+  if(h.sleep&&h.sleep>0&&h.sleep<16){d.sleep=h.sleep;got.push(`${h.sleep} h sleep`)}
   if(h.waist&&h.waist>10){d.meas={...(d.meas||{}),waist:h.waist};got.push(`waist ${h.waist}″`)}
  }));
  editProfile(p=>{p.healthLast=new Date().toISOString()});
@@ -1974,7 +2038,8 @@ const SHORTCUT_STEPS=[
  'Add "Get Details of Health Sample" and choose Value. Long-press it later to rename the result "Steps".',
  'Repeat those two actions for Dietary Water (name it Water) and Protein (name it Protein).',
  'Add "Find Health Samples" for Weight (Body Mass). Sort by Start Date, Latest First, Limit 1, then "Get Details → Value" (name it Weight).',
- 'Add a "Text" action and type four lines: steps: then the Steps variable, water: Water, protein: Protein, weight: Weight.',
+ 'Optional, for sleep: add "Find Health Samples" for Sleep Analysis with Start Date in the last 1 day, then "Get Details → Duration" (name it Sleep). If the hours look too high, add a filter so it skips "In Bed".',
+ 'Add a "Text" action with one line per number: steps: then the Steps variable, water: Water, protein: Protein, weight: Weight, sleep: Sleep.',
  'Add "Copy to Clipboard" with that Text.',
  'Optional: add "Show Notification" saying "Open rep.sh and tap Import from Health".',
  'Make it automatic: Automation tab → + → Time of Day → pick a time, Daily → Run Immediately → choose rep.sh sync.',
