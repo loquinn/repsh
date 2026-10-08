@@ -489,14 +489,14 @@ async function initStore(){
       if(d.id==='profile'){const np=mergeProfile(structuredClone(data));if(JSON.stringify(np)!==JSON.stringify(S.profile)){S.profile=np;changed=true}}
       else if(JSON.stringify(data)!==JSON.stringify(S.days[d.id])){S.days[d.id]=structuredClone(data);changed=true}
      }
-     if(!S.loaded){S.loaded=true;changed=true;migrateLocal(snap)}
+     if(!S.loaded){S.loaded=true;changed=true;migrateLocal(snap);setTimeout(ensureBase,0)}
      setStatus('saved');if(changed)scheduleRender();
     },err=>{S.store='local';setStatus('error',err&&err.code);scheduleRender()});
     return;
    }
   }
  }catch(e){}
- S.store='local';S.loaded=true;setStatus('saved');render();
+ S.store='local';S.loaded=true;ensureBase();setStatus('saved');render();
  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 }
 // first cloud load: if the store is empty but this device has an older local log, push it up once
@@ -504,6 +504,8 @@ function migrateLocal(snap){
  if(!snap.empty)return;const ids=Object.keys(S.days);
  if(ids.length){ids.forEach(id=>save(id));save('profile')}
 }
+// skills you already meet at your starting levels are recorded once, so they never pay XP
+function ensureBase(){if(!S.profile.base){S.profile.base=ALL_NODES.filter(n=>n.r.lad&&nodeMet(n)).map(n=>n.id);save('profile');clearGen()}}
 function scheduleRender(){const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){S.needRender=true;return}render()}
 document.addEventListener('focusout',()=>setTimeout(()=>{if(S.needRender&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')){S.needRender=false;render()}},50));
 
@@ -776,7 +778,8 @@ function computeHero(){
  h.bossFights=0;h.prs=0;
  for(const b of BOSSES){let best=null;for(const e of (S.profile.bosses||{})[b.id]||[]){h.bossFights++;h.xp+=75;if(best!=null&&(b.lower?e.v<best:e.v>best)){h.prs++;h.xp+=100}best=best==null?e.v:(b.lower?Math.min(best,e.v):Math.max(best,e.v))}}
  h.skills=ALL_NODES.filter(nodeMet).map(n=>n.id);
- h.xp+=ALL_NODES.filter(n=>h.skills.includes(n.id)).reduce((a,n)=>a+100*n.tier,0);
+ const base=new Set(S.profile.base||[]);
+ h.xp+=ALL_NODES.filter(n=>h.skills.includes(n.id)&&!base.has(n.id)).reduce((a,n)=>a+100*n.tier,0);
  h.ach=ACH.filter(a=>a.t(h)).map(a=>a.id);
  h.xp+=ACH.filter(a=>h.ach.includes(a.id)).reduce((s,a)=>s+a.xp,0);
  h.L=levelOf(h.xp);h.title=titleOf(h.L);
@@ -790,7 +793,7 @@ function withXP(fn,{always=false}={}){
  const gain=b.xp-before.xp;
  if(gain>0&&(always||gain>=15))msgs.push(`+${gain} XP`);
  if(b.L>before.L)msgs.push(`LEVEL UP → ${b.L} · ${b.title}`);
- for(const id of b.skills)if(!before.sk.has(id)){const N=ALL_NODES.find(x=>x.id===id);msgs.push(`SKILL UNLOCKED ${N.n} (+${100*N.tier} XP)`)}
+ for(const id of b.skills)if(!before.sk.has(id)&&!(S.profile.base||[]).includes(id)){const N=ALL_NODES.find(x=>x.id===id);msgs.push(`SKILL UNLOCKED ${N.n} (+${100*N.tier} XP)`)}
  for(const id of b.ach)if(!before.ach.has(id)){const A=ACH.find(x=>x.id===id);msgs.push(`UNLOCKED ${A.n} (+${A.xp} XP)`)}
  return msgs;
 }
@@ -1042,7 +1045,7 @@ function vSkills(){
   const N=ALL_NODES.find(x=>x.id===n.id),on=h.skills.includes(n.id),prevOn=!N.prev||h.skills.includes(N.prev);
   const st=on?'on':prevOn?'next':'';
   out+=`<div class="node ${st}"><div class="pip">${on?'■':prevOn?'◧':'□'}</div><div class="nb"><div class="nt"><b>${esc(n.n)}</b><span class="muted small">T${i+1} · ${100*(i+1)} XP</span></div>
-  <div class="small ${on?'':'muted'}">${on?(n.r.claim?'Claimed '+esc((S.profile.claims||{})[n.id]||''):'Unlocked'):esc(nodeProgress(N))}</div>
+  <div class="small ${on?'':'muted'}">${on?(n.r.claim?'Claimed '+esc((S.profile.claims||{})[n.id]||''):(S.profile.base||[]).includes(n.id)?'Starting skill · no XP':'Unlocked'):esc(nodeProgress(N))}</div>
   ${n.r.claim&&!on&&prevOn?`<button class="sm" data-a="claim" data-v="${n.id}">I can do this · claim</button>`:''}
   ${n.r.claim&&on?`<button class="lnk" data-a="unclaim" data-v="${n.id}">undo claim</button>`:''}</div></div>`;
  });
