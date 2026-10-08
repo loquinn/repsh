@@ -268,6 +268,11 @@ ol.steps{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap
 .obhero{display:flex;align-items:center;gap:16px}
 .obnav{display:grid;grid-template-columns:1fr 2fr;gap:10px;position:sticky;bottom:0;background:var(--bg);padding-top:8px}
 .obnav button{min-height:52px}
+.plan{display:flex;flex-direction:column;gap:6px}
+.planrow{display:grid;grid-template-columns:44px minmax(0,1.6fr) minmax(0,.8fr);align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--fg)}
+.planrow .pd{font:400 20px/1 var(--crt);color:var(--accent)}
+.planrow select{min-height:40px;padding:6px 8px;font-size:15px}
+.planrow .pf{font-size:11px;color:var(--dim);min-width:0}
 pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:auto}
 </style>
 
@@ -468,11 +473,25 @@ const TEMPLATES={
  mobility:{title:'MOBILITY / RESET',mob:true},
  fbA:{title:'FULL BODY / A',slots:['squat','push','row','core','cond'],warm:'legs',cool:'legs'},
  fbB:{title:'FULL BODY / B',slots:['hinge','pull','lunge','vpush','cond'],warm:'pull',cool:'pull'},
- rest:{title:'REST DAY',rest:true}
+ rest:{title:'REST DAY',rest:true},
+ flex:{title:'FLEXIBILITY',mob:true},
+ mobflex:{title:'MOBILITY + FLEX',mob:true},
+ yoga:{title:'YOGA',mob:true}
 };
 const SCHED_DEFAULT=['mobility','push','legsA','run','pull','legsB','full'];
 const SCHED=[...SCHED_DEFAULT];
-function applySched(){const w=S.profile&&S.profile.week;const src=Array.isArray(w)&&w.length===7&&w.every(x=>TEMPLATES[x])?w:SCHED_DEFAULT;for(let i=0;i<7;i++)SCHED[i]=src[i]}
+function applySched(){const w=S.profile&&planToWeek(planOf(S.profile));const src=Array.isArray(w)&&w.length===7&&w.every(x=>TEMPLATES[x])?w:SCHED_DEFAULT;for(let i=0;i<7;i++)SCHED[i]=src[i]}
+const DAY_CHOICES=[['workout','Workout'],['run','Run / walk'],['mobility','Mobility'],['flex','Flexibility'],['mobflex','Mobility + flex'],['yoga','Yoga'],['rest','Rest']];
+const FOCUS_BY_COUNT={0:[],1:['fbA'],2:['fbA','fbB'],3:['fbA','fbB','fbA'],4:['push','legsA','pull','legsB'],5:['push','legsA','pull','legsB','full'],6:['push','legsA','pull','legsB','full','fbA'],7:['push','legsA','pull','legsB','full','fbA','fbB']};
+const PLAN_PRESETS={daily:['mobility','workout','workout','run','workout','workout','workout'],five:['mobility','workout','workout','rest','workout','workout','rest'],three:['mobility','workout','rest','workout','rest','workout','rest']};
+const WORKOUT_TYPES=['push','legsA','pull','legsB','full','fbA','fbB'];
+function planToWeek(plan){const order=[1,2,3,4,5,6,0],wd=order.filter(i=>plan[i]==='workout'),foci=FOCUS_BY_COUNT[wd.length];const w=plan.map(c=>c==='workout'?'fbA':c);wd.forEach((i,j)=>w[i]=foci[j]);return w}
+function weekToPlan(w){return w.map(t=>WORKOUT_TYPES.includes(t)?'workout':t)}
+const planOf=p=>Array.isArray(p.plan)&&p.plan.length===7?p.plan:Array.isArray(p.week)&&p.week.length===7?weekToPlan(p.week):[...PLAN_PRESETS.daily];
+function planSummary(plan){const c={};plan.forEach(x=>c[x]=(c[x]||0)+1);return DAY_CHOICES.filter(([id])=>c[id]).map(([id,l])=>`${c[id]} ${id==='workout'?(c[id]>1?'workouts':'workout'):l.toLowerCase()}`).join(' · ')}
+function planRows(plan,attr){
+ return `<div class="plan">${[1,2,3,4,5,6,0].map(i=>{const wk=planToWeek(plan)[i];return `<label class="planrow"><span class="pd">${DOW[i]}</span><select ${attr}="${i}" aria-label="${DOW[i]}">${DAY_CHOICES.map(([id,l])=>`<option value="${id}" ${plan[i]===id?'selected':''}>${l}</option>`).join('')}</select><span class="pf">${plan[i]==='workout'?esc(TEMPLATES[wk].title.toLowerCase()):''}</span></label>`}).join('')}</div>`;
+}
 const isRest=k=>!!TEMPLATES[SCHED[parseKey(k).getDay()]].rest;
 
 const FORMATS={
@@ -687,7 +706,16 @@ const WALKS=[
  {name:'LONG WALK',desc:'40 minutes, steady and easy. Podcast optional.',steps:[['Steady walk',2400]]}
 ];
 function runFor(k){const L=S.profile.runMode==='walk'||S.profile.lowImpact?WALKS:RUNS;return L[weekIndex(k)%L.length]}
-function mobFor(k){return MOBILITY[weekIndex(k)%MOBILITY.length]}
+const FLEX=[
+ {name:'FLEXIBILITY A · LOWER BODY',steps:[['Standing quad stretch · L',45],['Standing quad stretch · R',45],['Seated hamstring stretch · L',60],['Seated hamstring stretch · R',60],['Butterfly stretch',60],['Pigeon · L',75],['Pigeon · R',75],['Lizard · L',60],['Lizard · R',60],['Frog stretch',75],['Seated straddle reach',75],['Figure-4 on your back · L',45],['Figure-4 on your back · R',45],['Happy baby',60],['Legs up the wall',120]]},
+ {name:'FLEXIBILITY B · UPPER BODY + SPINE',steps:[['Neck side stretch · L',30],['Neck side stretch · R',30],['Doorway chest stretch',60],['Cross-body shoulder · L',40],['Cross-body shoulder · R',40],['Overhead triceps · L',40],['Overhead triceps · R',40],['Thread the needle · L',45],['Thread the needle · R',45],['Puppy pose',60],['Sphinx',60],['Child’s pose, side reach · L',45],['Child’s pose, side reach · R',45],['Supine twist · L',60],['Supine twist · R',60],['Wrist stretches, both ways',60],['Slow breathing on your back',120]]}
+];
+const YOGA=[
+ {name:'YOGA A · SUN FLOW',steps:[['Child’s pose, slow breathing',60],['Cat-cow',60],['Downward dog',45],['Sun salutation A ×3, move with the breath',180],['Warrior I · L',40],['Warrior I · R',40],['Warrior II · L',40],['Warrior II · R',40],['Triangle · L',40],['Triangle · R',40],['Chair pose',30],['Tree pose · L',30],['Tree pose · R',30],['Low lunge · L',45],['Low lunge · R',45],['Seated forward fold',60],['Bridge pose',45],['Supine twist · L',45],['Supine twist · R',45],['Savasana',180]]},
+ {name:'YOGA B · HIPS + BALANCE',steps:[['Easy seat, box breathing',60],['Cat-cow',45],['Downward dog',45],['Sun salutation A ×2',120],['Crescent lunge · L',40],['Crescent lunge · R',40],['Warrior III · L',30],['Warrior III · R',30],['Half moon · L',30],['Half moon · R',30],['Garland squat',60],['Pigeon · L',75],['Pigeon · R',75],['Boat pose',30],['Bridge pose',45],['Happy baby',60],['Reclined bound angle',90],['Savasana',180]]}
+];
+const MOBFLEX=MOBILITY.map((M,i)=>({name:`MOBILITY + FLEX ${'AB'[i]} · FULL BODY`,steps:[...M.steps.slice(0,9),...FLEX[i].steps.slice(0,8)]}));
+function mobFor(k){const t=SCHED[parseKey(k).getDay()],L=t==='flex'?FLEX:t==='yoga'?YOGA:t==='mobflex'?MOBFLEX:MOBILITY;return L[weekIndex(k)%L.length]}
 function warmFor(type){const t=TEMPLATES[type];return [...WARM.base.slice(0,t.warm==='run'?2:6),...(WARM[t.warm]||[])]}
 function coolFor(type){return COOL[TEMPLATES[type].cool]||[]}
 const seqSecs=s=>s.reduce((a,b)=>a+b[1],0);
@@ -936,7 +964,7 @@ function vToday(){
  return h;
 }
 const DOW1=['S','M','T','W','T','F','S'];
-const SHORTTYPE={push:'PUSH',legsA:'LEGS',run:'RUN',pull:'PULL',legsB:'LEGS',full:'UPPR',mobility:'MOB',fbA:'FULL',fbB:'FULL',rest:'REST'};
+const SHORTTYPE={push:'PUSH',legsA:'LEGS',run:'RUN',pull:'PULL',legsB:'LEGS',full:'UPPR',mobility:'MOB',fbA:'FULL',fbB:'FULL',rest:'REST',flex:'FLEX',mobflex:'M+F',yoga:'YOGA'};
 function weekStrip(k){
  const mon=monOf(k),t=TODAY(),h=computeHero();
  const cells=Array.from({length:7},(_,i)=>{const d=addDays(mon,i),dt=parseKey(d),done=dayDone(d),fz=h.frozen.has(d);
@@ -1253,8 +1281,10 @@ function vSetup(){
  <div class="box"><div class="boxh"><h2>PROGRAM</h2></div>
  <label>Day 1 of program<input data-p="start" type="date" value="${p.start}"></label>
  <div class="small muted">Sets the day counter, the 6-week deload cycle, and the A/B rotation for runs and mobility.</div>
- <div class="list small">${[1,2,3,4,5,6,0].map(i=>`<div class="row"><span class="nm">${DOW[i]} · ${esc(SCHED[i]==='run'&&(p.runMode==='walk'||p.lowImpact)?'WALK DAY':TEMPLATES[SCHED[i]].title)}</span></div>`).join('')}</div>
- <div class="small muted">Change your week, goal, or low-impact mode with Edit hero.</div></div>
+ <div class="boxh" style="margin-top:6px"><h2 style="font-size:20px">YOUR WEEK</h2><span class="tag">${esc(planSummary(planOf(p)))}</span></div>
+ ${planRows(planOf(p),'data-plan')}
+ ${planOf(p).includes('run')?`<div class="obrow"><span class="small muted">Run days are</span><div class="seg">${[['run','Runs'],['walk','Walks']].map(([id,l])=>`<button class="sm ${(p.runMode==='walk'||p.lowImpact?'walk':'run')===id?'on':''}" data-a="runmode" data-v="${id}" ${p.lowImpact&&id==='run'?'disabled':''}>${l}</button>`).join('')}</div></div>`:''}
+ <div class="small muted">Changes apply to days you haven't logged yet. Goal and low-impact mode live in Edit hero.</div></div>
  <div class="box"><div class="boxh"><h2>APPLE HEALTH</h2><span class="tag">${p.healthLast?'last import '+esc(p.healthLast.slice(5,10)):'not set up'}</span></div>
  <div class="small muted">Web apps can't read Health directly, so a one-time Shortcut copies today's steps, water, protein and weight. Then tap ⇩ Import from Health on Today. Nothing is ever written back to Health.</div>
  <details><summary class="small">Build the Shortcut (about 5 minutes)</summary><ol class="steps">${SHORTCUT_STEPS.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></details></div>
@@ -1292,6 +1322,8 @@ const ACT={
  obfinish:()=>finishSetup(),
  obcancel:()=>{S.ob=null;drawSetup();document.body.style.overflow=''},
  edithero:()=>openSetup(),
+ obpreset:b=>{obRead();S.ob.plan=[...PLAN_PRESETS[b.dataset.v]];drawSetup()},
+ runmode:b=>{editProfile(p=>{p.runMode=b.dataset.v});render()},
  healthimport:()=>importHealth(),
  healthparse:()=>{const h=parseHealth($('#health-paste')?.value);if(Object.keys(h).length)applyHealth(h);else{S.flash='> No Health numbers found. The text should look like "steps: 8432".';render()}},
  healthcancel:()=>{S.healthBox=false;render()},
@@ -1340,6 +1372,8 @@ document.addEventListener('change',e=>{
  if(el.dataset.ob){obRead();S.ob[el.dataset.ob]=el.checked;return}
  if(el.dataset.obeq){obRead();S.ob.equip[el.dataset.obeq]=el.checked;return}
  if(el.id==='ob-weight'){obRead();suggestTargets(S.ob);setTimeout(()=>{for(const [id,k] of [['ob-protein','protein'],['ob-water','water']]){const e=$('#'+id);if(e)e.value=S.ob[k]}},0);return}
+ if(el.dataset.obplan!=null){obRead();S.ob.plan[+el.dataset.obplan]=el.value;setTimeout(drawSetup,0);return}
+ if(el.dataset.plan!=null){const i=+el.dataset.plan,v=el.value;editProfile(p=>{const pl=[...planOf(p)];pl[i]=v;p.plan=pl;p.week=planToWeek(pl)});setTimeout(render,0);return}
  if(el.dataset.voice){editProfile(p=>{p.voice=el.checked})}
  if(el.dataset.eq){editProfile(p=>{p.equip[el.dataset.eq]=el.checked});render()}
 });
@@ -1716,7 +1750,7 @@ const FIT_LEVELS={
 function obDefaults(){
  const p=S.profile,h=p.hero||{};
  return {name:h.name||'',sex:h.sex||'m',skin:h.skin??1,hair:h.hair??0,goal:p.goal||'both',fitness:p.fitness||'back',lowImpact:!!p.lowImpact,
-  equip:{...p.equip},week:p.weekPreset||'daily',runMode:p.runMode||'run',loc:p.loc||'home',mins:+p.mins||20,
+  equip:{...p.equip},plan:[...planOf(p)],runMode:p.runMode||'run',loc:p.loc||'home',mins:+p.mins||20,
   weight:'',protein:p.goals.protein,water:p.goals.water,walk:p.goals.walk,touched:false};
 }
 function suggestTargets(o){
@@ -1740,17 +1774,21 @@ function vSetupFlow(){
   <div class="small muted">Your first boss fights fine-tune this automatically.</div>`;
  if(step==='equip'){const EQ=[['db5','Dumbbells · 5 lb pair'],['db10','Dumbbells · 10 lb pair'],['kb25','Kettlebell · 25 lb'],['bar','Pull-up bar'],['couch','Couch or sturdy bench'],['db35','Dumbbell · 35 lb'],['kb50','Kettlebell · 50 lb']];
   body=`<div class="obh">$ ./setup --equipment</div><h2 class="obt">What do you have?</h2><div class="small muted">Workouts only use what you tick. Nothing is fine too.</div>${EQ.map(([id,l])=>`<label class="toggle"><span>${l}</span><input type="checkbox" data-obeq="${id}" ${o.equip[id]?'checked':''}></label>`).join('')}`}
- if(step==='sched')body=`<div class="obh">$ ./setup --schedule</div><h2 class="obt">Your week</h2>${Object.entries(WEEKS).map(([id,W])=>`<button class="obopt ${o.week===id?'on':''}" data-a="ob" data-f="week" data-v="${id}"><b>${W.n}</b><span>${W.d}</span></button>`).join('')}
-  ${o.week==='daily'?`<div class="obrow"><span class="small muted">Wednesday</span><div class="seg">${[['run','Run'],['walk','Walk']].map(([id,l])=>`<button class="sm ${o.runMode===id?'on':''}" data-a="ob" data-f="runMode" data-v="${id}">${l}</button>`).join('')}</div></div>`:''}
+ if(step==='sched')body=`<div class="obh">$ ./setup --schedule</div><h2 class="obt">Your week</h2>
+  <div class="small muted">Pick what each day is. Workout days get a generated workout, and the focus (push, pull, legs, full body) spreads across however many you pick.</div>
+  <div class="chips">${[['daily','Every day'],['five','5 days'],['three','3 days']].map(([id,l])=>`<button class="sm" data-a="obpreset" data-v="${id}">${l}</button>`).join('')}</div>
+  ${planRows(o.plan,'data-obplan')}
+  <div class="small">${esc(planSummary(o.plan))}</div>
+  ${o.plan.includes('run')?`<div class="obrow"><span class="small muted">Run days are</span><div class="seg">${[['run','Runs'],['walk','Walks']].map(([id,l])=>`<button class="sm ${o.runMode===id?'on':''}" data-a="ob" data-f="runMode" data-v="${id}">${l}</button>`).join('')}</div></div>`:''}
   <div class="obrow"><span class="small muted">Usually</span><div class="seg">${Object.entries(LOCS).map(([id,l])=>`<button class="sm ${o.loc===id?'on':''}" data-a="ob" data-f="loc" data-v="${id}">${l}</button>`).join('')}</div></div>
   <div class="obrow"><span class="small muted">Minutes</span><div class="seg">${[10,20,30].map(x=>`<button class="sm ${o.mins===x?'on':''}" data-a="ob" data-f="mins" data-v="${x}">${x}</button>`).join('')}</div></div>`;
  if(step==='targets')body=`<div class="obh">$ ./setup --targets</div><h2 class="obt">Daily targets</h2>
   <label>Bodyweight (lb, optional)<input id="ob-weight" type="number" inputmode="decimal" step="0.1" value="${esc(o.weight)}" placeholder="154"></label>
   <div class="small muted">Enter your weight and the targets below fill in for your goal. Change anything you like.</div>
   <div class="grid3"><label>Protein g<input id="ob-protein" type="number" inputmode="numeric" value="${o.protein}"></label><label>Water oz<input id="ob-water" type="number" inputmode="numeric" value="${o.water}"></label><label>Walk min<input id="ob-walk" type="number" inputmode="numeric" value="${o.walk}"></label></div>`;
- if(step==='review'){const W=WEEKS[o.week];
+ if(step==='review'){
   body=`<div class="obh">$ ./setup --review</div><div class="obhero">${avatarSVG(130,o)}<div><h2 class="obt">${esc(o.name||'Unnamed hero')}</h2><div class="small muted">lvl 1 · guest</div></div></div>
-  <div class="list small">${[['Goal',GOALS.find(g=>g[0]===o.goal)[1]],['Start',FITNESS.find(f=>f[0]===o.fitness)[1]+(o.lowImpact?' · low impact':'')],['Week',W.n+(o.week==='daily'?` · Wednesday ${o.runMode}`:'')],['Default',`${LOCS[o.loc]} · ${o.mins} min`],['Targets',`${o.protein} g protein · ${o.water} oz water · ${o.walk} min walk`]].map(([a,b])=>`<div class="row"><span class="nm">${a}</span><span>${esc(b)}</span></div>`).join('')}</div>`}
+  <div class="list small">${[['Goal',GOALS.find(g=>g[0]===o.goal)[1]],['Start',FITNESS.find(f=>f[0]===o.fitness)[1]+(o.lowImpact?' · low impact':'')],['Week',planSummary(o.plan)+(o.plan.includes('run')?` · ${o.runMode}s`:'')],['Default',`${LOCS[o.loc]} · ${o.mins} min`],['Targets',`${o.protein} g protein · ${o.water} oz water · ${o.walk} min walk`]].map(([a,b])=>`<div class="row"><span class="nm">${a}</span><span>${esc(b)}</span></div>`).join('')}</div>`}
  const first=o.i===0,last=o.i===OB_STEPS.length-1;
  return `<div class="ob"><div class="obbar"><i style="width:${pct}%"></i></div><div class="obbody">${body}</div>
  <div class="obnav">${first?(S.profile.hero?'<button class="ghost" data-a="obcancel">Cancel</button>':'<span></span>'):'<button data-a="obback">‹ Back</button>'}<button class="pri" data-a="${last?'obfinish':'obnext'}">${last?'▶ Boot hero':'Next ›'}</button></div></div>`;
@@ -1767,7 +1805,7 @@ function finishSetup(){
  editProfile(p=>{
   p.hero={name:o.name,sex:o.sex,skin:o.skin,hair:o.hair,created:p.hero?.created||TODAY()};
   p.goal=o.goal;p.fitness=o.fitness;p.lowImpact=o.lowImpact;p.equip={...p.equip,...o.equip};
-  p.weekPreset=o.week;p.week=[...WEEKS[o.week].w];p.runMode=o.lowImpact?'walk':o.runMode;p.loc=o.loc;p.mins=o.mins;
+  p.plan=[...o.plan];p.week=planToWeek(o.plan);delete p.weekPreset;p.runMode=o.lowImpact?'walk':o.runMode;p.loc=o.loc;p.mins=o.mins;
   p.goals={protein:Math.max(1,+o.protein||140),water:Math.max(1,+o.water||96),walk:Math.max(1,+o.walk||30)};
   if(fresh){
    const F=FIT_LEVELS[o.fitness];for(const pat in PAT)p.levels[pat]={i:F.l?F.l[pat]??START_LEVELS[pat]:START_LEVELS[pat],v:F.v};
@@ -1777,7 +1815,7 @@ function finishSetup(){
  if(fresh)editProfile(p=>{p.base=ALL_NODES.filter(n=>n.r.lad&&nodeMet(n)).map(n=>n.id)});
  if(+o.weight)editDay(TODAY(),d=>{if(!d.weight)d.weight=+o.weight});
  S.ob=null;drawSetup();document.body.style.overflow='';S.tab='today';S.view=TODAY();render();
- const el=$('#cele');el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(150,S.profile.hero,1)}</div><pre class="cbanner">HERO ONLINE</pre><div class="ctitle">${esc(heroName()||'hero')}</div><pre class="clines">$ ./setup --done\n> profile written\n> ${WEEKS[S.profile.weekPreset].n.toLowerCase()} · ${LOCS[S.profile.loc].toLowerCase()} · ${S.profile.mins} min\n> next: calibrate with 4 quick boss fights</pre><div class="small muted">tap anywhere to continue</div></div>`;el.hidden=false;
+ const el=$('#cele');el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(150,S.profile.hero,1)}</div><pre class="cbanner">HERO ONLINE</pre><div class="ctitle">${esc(heroName()||'hero')}</div><pre class="clines">$ ./setup --done\n> profile written\n> ${esc(planSummary(planOf(S.profile)))} · ${LOCS[S.profile.loc].toLowerCase()} · ${S.profile.mins} min\n> next: calibrate with 4 quick boss fights</pre><div class="small muted">tap anywhere to continue</div></div>`;el.hidden=false;
  beep(523,.08);setTimeout(()=>beep(784,.18),140);
 }
 
