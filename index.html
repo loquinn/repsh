@@ -347,7 +347,7 @@ pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:aut
 <div id="setupflow" hidden></div>
 
 <script>
-const BUILD='b92513824';
+const BUILD='b92520619';
 /* ============ helpers ============ */
 const $=(s,el=document)=>el.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -1180,18 +1180,50 @@ const POSE={
  proneDn:{h:[19,19],n:[16,20],p:[9,20],e:[19,20],a:[22,20],k:[5,20],f:[1,20]},
  proneUp:{h:[19,17],n:[16,18],p:[9,20],e:[19,17],a:[22,16],k:[5,19],f:[1,18]},
  fold:{h:[16,16],n:[14,14],p:[10,10],e:[15,17],a:[16,20],k:[10,15],f:[10,20]},
- wallsit:{h:[9,7],n:[9,10],p:[9,15],e:[9,13],a:[9,16],k:[14,15],f:[14,20]}
+ wallsit:{h:[9,7],n:[9,10],p:[9,15],e:[9,13],a:[9,16],k:[14,15],f:[14,20]},
+ // furniture moves: couch on the left (seat top y15), couch/step on the right, chair, doorframe
+ inclHi:{h:[19,7],n:[16,8],p:[10,13],e:[16,11],a:[17,13],k:[6,16],f:[2,19]},
+ inclLo:{h:[19,10],n:[16,11],p:[10,15],e:[13,11],a:[17,13],k:[6,17],f:[2,19]},
+ declHi:{h:[21,14],n:[18,14],p:[12,13],e:[19,17],a:[19,20],k:[8,13],f:[5,13]},
+ declLo:{h:[21,18],n:[18,18],p:[12,15],e:[16,18],a:[19,20],k:[8,14],f:[5,13]},
+ wallHi:{h:[17,6],n:[15,8],p:[11,13],e:[17,8],a:[20,8],k:[9,17],f:[8,20]},
+ wallLo:{h:[19,6],n:[17,8],p:[12,13],e:[16,10],a:[20,8],k:[10,17],f:[8,20]},
+ epUp:{h:[18,15],n:[16,14],p:[11,8],e:[17,17],a:[17,20],k:[8,11],f:[5,13]},
+ epDn:{h:[18,18],n:[16,17],p:[11,9],e:[14,17],a:[17,20],k:[8,11],f:[5,13]},
+ bssUp:{h:[13,5],n:[13,8],p:[13,14],e:[13,11],a:[13,14],k:[15,17],f:[15,20],K:[10,15],F:[6,13]},
+ bssDn:{h:[13,8],n:[13,11],p:[13,16],e:[13,13],a:[13,16],k:[16,16],f:[16,20],K:[11,19],F:[6,13]},
+ htDn:{h:[6,12],n:[8,13],p:[10,19],e:[9,15],a:[10,17],k:[15,16],f:[16,20]},
+ htUp:{h:[6,12],n:[8,13],p:[12,13],e:[9,15],a:[10,17],k:[16,14],f:[16,20]},
+ psUp:{h:[12,5],n:[12,8],p:[12,14],e:[15,9],a:[18,9],k:[12,17],f:[12,20],K:[16,14],F:[20,14]},
+ psDn:{h:[11,5],n:[10,8],p:[8,14],e:[13,9],a:[16,9],k:[13,14],f:[13,20],K:[13,13],F:[18,12]},
+ pfUp:{h:[12,5],n:[12,8],p:[12,14],e:[16,10],a:[19,11],k:[12,17],f:[12,20],K:[15,15],F:[18,15]},
+ pfDn:{h:[13,8],n:[12,11],p:[9,17],e:[16,12],a:[19,12],k:[14,16],f:[13,20],K:[14,16],F:[18,16]},
+ pistolDn:{h:[13,8],n:[12,11],p:[9,17],e:[15,11],a:[18,11],k:[14,16],f:[13,20],K:[14,16],F:[19,16]},
+ nordUp:{h:[10,6],n:[10,9],p:[10,15],e:[11,12],a:[12,14],k:[10,20],f:[4,20]},
+ nordDn:{h:[20,12],n:[17,13],p:[13,17],e:[18,16],a:[19,19],k:[10,20],f:[4,20]},
+ lsit:{h:[11,2],n:[11,5],p:[11,10],e:[12,9],a:[12,12],k:[16,10],f:[20,10]},
+ lsitT:{h:[11,2],n:[11,5],p:[11,10],e:[12,9],a:[12,12],k:[15,8],f:[13,11]},
+ lsit1:{h:[11,2],n:[11,5],p:[11,10],e:[12,9],a:[12,12],k:[16,10],f:[20,10],K:[15,8],F:[13,11]},
+ fpDn:{h:[3,19],n:[6,20],p:[12,20],e:[7,20],a:[7,17],k:[15,16],f:[18,20]},
+ fpUp:{h:[3,19],n:[6,20],p:[12,20],e:[7,16],a:[7,12],k:[15,16],f:[18,20]},
+ rnB:{h:[20,13],n:[17,14],p:[9,16],e:[14,13],a:[16,16],E:[17,17],A:[17,20],k:[5,18],f:[2,19]},
+ rtA:{h:[7,12],n:[8,15],p:[11,20],e:[10,17],a:[12,17],k:[14,16],f:[17,18]},
+ rtB:{h:[7,12],n:[8,15],p:[11,20],e:[11,18],a:[13,20],k:[14,16],f:[17,18]}
 };
 // families: key poses (looped), props they show, and whether a hold stays still
 const FAM={
  pushup:{k:['plankHi','plankLo']},pike:{k:['pikeUp','pikeDn']},handstand:{k:['hstand'],props:['wall']},
- squat:{k:['stand','squat']},goblet:{k:['gobletUp','gobletDn']},wallsit:{k:['wallsit'],props:['wall']},lunge:{k:['stand','lungeDn']},
+ squat:{k:['stand','squat']},goblet:{k:['gobletUp','gobletDn']},wallsit:{k:['wallsit'],props:['wallL']},lunge:{k:['stand','lungeDn']},
  hinge:{k:['stand','hingeDn']},swing:{k:['swingDn','swingUp']},bridge:{k:['bridgeDn','bridgeUp']},
  pullup:{k:['hang','pullTop'],props:['bar']},hang:{k:['hang'],props:['bar']},hkr:{k:['hang','hkrUp'],props:['bar']},
- row:{k:['rowDn','rowUp']},press:{k:['pressDn','pressUp']},curl:{k:['curlDn','curlUp']},dip:{k:['dipUp','dipDn'],props:['couch']},
+ row:{k:['rowDn','rowUp']},press:{k:['pressDn','pressUp']},curl:{k:['curlDn','curlUp']},dip:{k:['dipUp','dipDn'],props:['couchL']},diphold:{k:['dipDn'],props:['couchL']},
+ incline:{k:['inclHi','inclLo'],props:['couchR']},decline:{k:['declHi','declLo'],props:['couchL']},wallpu:{k:['wallHi','wallLo'],props:['wall']},epike:{k:['epUp','epDn'],props:['couchL']},pikehold:{k:['pikeUp']},
+ bss:{k:['bssUp','bssDn'],props:['couchL']},hipthrust:{k:['htDn','htUp'],props:['couchL']},pistolcouch:{k:['psUp','psDn'],props:['couchL']},pistolframe:{k:['pfUp','pfDn'],props:['frame']},pistol:{k:['psUp','pistolDn']},
+ nordic:{k:['nordUp','nordDn'],props:['couchL']},lsit:{k:['lsit'],props:['chair']},tucklsit:{k:['lsitT'],props:['chair']},lsitone:{k:['lsit1'],props:['chair']},
+ floorpress:{k:['fpDn','fpUp']},renegade:{k:['plankHi','rnB']},twist:{k:['rtA','rtB']},
  crunch:{k:['lie','crunch']},legraise:{k:['lieFlat','legsUp']},vup:{k:['lieReach','vup']},hollow:{k:['hollow']},
  plank:{k:['forearm']},mclimb:{k:['mcA','mcB']},burpee:{k:['stand','crouch','plankHi','crouch','air']},
- jump:{k:['squat','air']},jack:{k:['stand','jackOut']},run:{k:['runA','runB']},stepup:{k:['stepA','stepB'],props:['box']},
+ jump:{k:['squat','air']},jack:{k:['stand','jackOut']},run:{k:['runA','runB']},stepup:{k:['stepA','stepB'],props:['step']},
  birddog:{k:['quad','quadReach']},deadbug:{k:['dbA','dbB']},superman:{k:['proneDn','proneUp']},inchworm:{k:['stand','fold','plankHi','fold']}
 };
 const FAM_RULES=[
@@ -1206,16 +1238,23 @@ const FAM_RULES=[
  [/squat|pistol|cossack/,'squat'],[/knees|march|fast feet|run|sprint|shuffle|shadow|rope|cross crunch|carry|walk|crawl|shuttle/,'run']
 ];
 const FAM_BY_PAT={push:'pushup',vpush:'press',dip:'dip',pull:'pullup',row:'row',arms:'curl',squat:'squat',lunge:'lunge',hinge:'hinge',core:'crunch',burpee:'burpee',cardio:'run',sprint:'run'};
-function demoFam(ex,pat){const n=(ex.n||'').toLowerCase();for(const [re,f] of FAM_RULES)if(re.test(n))return f;return FAM_BY_PAT[pat]||'squat'}
+const DEMO_ID={incl_pu:'incline',oa_incl:'incline',oa_incl_low:'incline',decl_pu:'decline',wall_pu:'wallpu',epike:'epike',pike_hold:'pikehold',bss:'bss',bss10:'bss',bss25:'bss',bss35:'bss',hip_thrust:'hipthrust',pistol_box:'pistolcouch',pistol_neg:'pistolcouch',pistol_asst:'pistolframe',pistol:'pistol',nordic:'nordic',lsit:'lsit',tuck_lsit:'tucklsit',lsit_one:'lsitone',db_floor10:'floorpress',renegade:'renegade',russian:'twist',dip_hold:'diphold',wall_hs_tap:'handstand'};
+function demoFam(ex,pat){if(DEMO_ID[ex.id])return DEMO_ID[ex.id];const n=(ex.n||'').toLowerCase();for(const [re,f] of FAM_RULES)if(re.test(n))return f;return FAM_BY_PAT[pat]||'squat'}
 const lerpPose=(A,B,t)=>{const o={};for(const j of ['h','n','p','e','a','E','A','k','f','K','F']){const a=A[j]||A[j.toLowerCase()],b=B[j]||B[j.toLowerCase()];o[j]=[Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t)]}return o};
 function rasterPose(P,props,gear,col){
  const g=Array.from({length:DH},()=>Array(DW).fill(null));
  const put=(x,y,c)=>{if(x>=0&&x<DW&&y>=0&&y<DH)g[y][x]=c};
  const line=([x0,y0],[x1,y1],c,w=2)=>{const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let err=dx-dy,x=x0,y=y0;for(;;){for(let i=0;i<w;i++)for(let j=0;j<w;j++)put(x+i-(w>2?1:0),y+j-(w>2?1:0),c);if(x===x1&&y===y1)break;const e2=2*err;if(e2>-dy){err-=dy;x+=sx}if(e2<dx){err+=dx;y+=sy}}};
- if(props.includes('bar'))for(let x=5;x<20;x++)put(x,1,'X');
- if(props.includes('wall'))for(let y=0;y<DH;y++){put(21,y,'X');put(22,y,'X')}
- if(props.includes('couch'))for(let y=15;y<DH;y++)for(let x=1;x<9;x++)put(x,y,y===15?'X':'Y');
- if(props.includes('box'))for(let y=17;y<DH;y++)for(let x=14;x<21;x++)put(x,y,y===17?'X':'Y');
+ if(props.includes('bar'))for(let x=5;x<20;x++)put(x,1,'M');
+ if(props.includes('wall'))for(let y=0;y<DH;y++){put(21,y,'W');put(22,y,'W')}
+ if(props.includes('wallL'))for(let y=0;y<DH;y++){put(6,y,'W');put(7,y,'W')}
+ // couch: cushion with a lighter top edge, a backrest on the far side, short legs
+ const couch=(x0,x1,back)=>{for(let x=x0;x<=x1;x++){put(x,15,'X');for(let y=16;y<=18;y++)put(x,y,'Y');put(x,19,'Z')}for(const x of [x0+1,x1-1]){put(x,20,'Z');put(x,21,'Z')}for(let y=10;y<=14;y++)for(const x of back)put(x,y,y===10?'X':'Y')};
+ if(props.includes('couchL'))couch(0,8,[0,1]);
+ if(props.includes('couchR'))couch(15,23,[22,23]);
+ if(props.includes('step'))for(let x=14;x<=21;x++){put(x,17,'X');for(let y=18;y<=20;y++)put(x,y,'Y');if(x===15||x===20)put(x,21,'Z')}
+ if(props.includes('chair')){for(let x=7;x<=15;x++){put(x,14,'X');put(x,15,'Z')}for(let y=16;y<=21;y++){put(7,y,'Z');put(15,y,'Z')}}
+ if(props.includes('frame'))for(let y=0;y<DH;y++){put(20,y,'Z');put(21,y,y===0?'X':'Y')}
  const P0=Object.fromEntries(Object.entries(P).map(([k,v])=>[k,v]));
  const E=P0.E||P0.e,A=P0.A||P0.a,K=P0.K||P0.k,F=P0.F||P0.f;
  // far limbs first, then torso, near limbs, head
@@ -1235,7 +1274,7 @@ function demoSVG(id,px=168){
  const x=exById(id),ex=x?x.ex:SKILLX[id]||{n:id},pat=x?x.pat:'core',fam=demoFam(ex,pat),F=FAM[fam]||{},o=S.profile.hero||{};
  const q=ex.q||[],gear=q.some(e=>/^kb/.test(e))?'kb':q.some(e=>/^db/.test(e))?'db':null;
  const props=[...(F.props||[]),...(q.includes('bar')&&!(F.props||[]).includes('bar')&&['pullup','hang','hkr'].includes(fam)?['bar']:[])];
- const col={S:SKINS[o.skin??1],s2:SKINS[o.skin??1],H:HAIRS[o.hair??0],E:'#1a1410',T:'var(--accent)',P:'#4a4f5c',q:'#4a4f5c',B:'#e9e2d4',b:'#e9e2d4',X:'var(--dim)',Y:'var(--line)',K:'#9aa0aa',D:'#9aa0aa'};
+ const col={S:SKINS[o.skin??1],s2:SKINS[o.skin??1],H:HAIRS[o.hair??0],E:'#1a1410',T:'var(--accent)',P:'#4a4f5c',q:'#4a4f5c',B:'#e9e2d4',b:'#e9e2d4',X:'#8a7660',Y:'#5a4a3c',Z:'#3e342b',M:'#9aa0aa',W:'#4a443b',K:'#9aa0aa',D:'#9aa0aa'};
  const fr=demoFrames(fam),n=fr.length,dur=n*.32;
  const g=fr.map((P,i)=>`<g${n>1?` style="animation:demofr${n} ${dur}s steps(1) ${(-dur+i*dur/n).toFixed(2)}s infinite"`:''}>${rasterPose(P,props,gear,col)}</g>`).join('');
  return `<svg class="pxdemo ${n>1?'anim n'+n:''}" viewBox="0 0 ${DW} ${DH}" width="${px}" height="${Math.round(px*DH/DW)}" shape-rendering="crispEdges" aria-hidden="true">${g}</svg>`;
