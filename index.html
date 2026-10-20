@@ -1217,7 +1217,7 @@ const SHORTTYPE={push:'PUSH',legsA:'LEGS',run:'RUN',pull:'PULL',legsB:'LEGS',ful
 function weekStrip(k){
  const mon=monOf(k),t=TODAY(),h=computeHero();
  const cells=Array.from({length:7},(_,i)=>{const d=addDays(mon,i),dt=parseKey(d),done=dayDone(d),fz=h.frozen.has(d);
-  const rs=isRest(d),g=done?'■':fz?'▣':rs?'~':d===t?'◧':d>t?'·':'–';
+  const rs=isRest(d),pre=d<S.profile.start,g=done?'■':fz?'▣':pre?' ':rs?'~':d===t?'◧':d>t?'·':'–';
   return `<button class="wd ${d===k?'sel':''} ${d===t?'today':''} ${done?'done':''}" data-a="goto" data-v="${d}" aria-label="${DOW[dt.getDay()]} ${dt.getDate()}${done?', done':''}"><span>${DOW1[dt.getDay()]}</span><b>${dt.getDate()}</b><i>${g}</i><em>${typeOf(d)==='run'&&S.profile.runMode==='walk'?'WALK':SHORTTYPE[typeOf(d)]}</em></button>`}).join('');
  return `<div class="week"><button class="sm ghost wkn" data-a="day" data-v="-7" aria-label="Previous week">‹</button><div class="wk">${cells}</div><button class="sm ghost wkn" data-a="day" data-v="7" aria-label="Next week">›</button></div>`;
 }
@@ -1511,7 +1511,7 @@ function vHistory(){
  for(const k of keys){if(dayDone(k)){total++;if(daysBetween(k,t)<7)wk++}}
  // 12 weeks grid, columns = weeks, rows = Sun..Sat
  const end=t,startCol=addDays(end,-(parseKey(end).getDay())-77);
- let cells='';for(let row=0;row<7;row++)for(let c=0;c<12;c++){const k=addDays(startCol,c*7+row);const fut=k>t;cells+=`<i class="${fut?'f':dayDone(k)?'d':isRest(k)?'r':computeHero().frozen.has(k)?'z':dayPartial(k)?'p':''}${k===t?' t':''}" title="${k}"></i>`}
+ let cells='';for(let row=0;row<7;row++)for(let c=0;c<12;c++){const k=addDays(startCol,c*7+row);const fut=k>t||(k<S.profile.start&&!dayDone(k));cells+=`<i class="${fut?'f':dayDone(k)?'d':isRest(k)?'r':computeHero().frozen.has(k)?'z':dayPartial(k)?'p':''}${k===t?' t':''}" title="${k}"></i>`}
  let h=`<div class="prompt">$ <i>rep</i> log --last 12w</div>
  <div class="boxh" style="margin-top:4px"><h2>HISTORY</h2></div>
  <div class="box"><div class="grid3"><div class="stat"><b>${streak()}</b><span>day streak</span></div><div class="stat"><b>${wk}</b><span>last 7 days</span></div><div class="stat"><b>${total}</b><span>sessions</span></div></div>
@@ -1572,7 +1572,10 @@ function vSetup(){
  <div class="box"><div class="boxh"><h2>DATA</h2><span class="tag ${S.store==='cloud'?'ok':'am'}">${S.store==='cloud'?'synced to your account':window.REPSH_APP?'saved on this phone':'this device only'}</span></div>
  <div class="small muted">${S.store==='cloud'?'Your log is private to you and follows you to any device where you open this page.':window.REPSH_APP?'Your log is saved on this phone only. Export a backup to Files every week or two.':'Sync is not available in this view, so entries are kept in this browser only. Export a backup now and then.'}</div>
  <div class="btns"><button data-a="export">Export backup (.json)</button><label class="btn filebtn">Restore from backup<input id="importfile" type="file" accept=".json,application/json" hidden></label></div>
- <div class="small muted">Restoring merges the backup into this log. Days in the backup replace the same days here.</div></div>`;
+ <div class="small muted">Restoring merges the backup into this log. Days in the backup replace the same days here.</div>
+ <div class="boxh" style="margin-top:10px"><h2 style="font-size:20px">FRESH START</h2></div>
+ <div class="small muted">Wipes logged days, boss fights and XP, and makes today Day 1. Keeps your hero, plan, equipment, targets and levels.</div>
+ <div class="btns"><button data-a="freshstart">Start fresh from today</button></div></div>`;
 }
 
 /* ============ actions ============ */
@@ -1596,6 +1599,7 @@ const ACT={
  seq:b=>startSeq(b.dataset.v),
  lvl:b=>{const pat=b.dataset.p,v=+b.dataset.v;const m=withXP(()=>editProfile(p=>{const L=p.levels[pat]||(p.levels[pat]={i:0,v:1});L.i=Math.max(0,Math.min(PAT[pat].ladder.length-1,L.i+v));L.v=1}));if(m.length)S.flash='> '+m.join('\n');render()},
  export:()=>doExport(),
+ freshstart:()=>freshStart(),
  histname:b=>{S.tab='hero';S.heroTab='log';S.histName=b.dataset.v;S.flash='';render();scrollTo(0,0)},
  histback:()=>{S.histName=null;render()},
  again:b=>doAgain(b.dataset.v),
@@ -2140,6 +2144,25 @@ function finishSetup(){
  S.ob=null;drawSetup();document.body.style.overflow='';S.tab='today';S.view=TODAY();render();
  const el=$('#cele');el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(150,S.profile.hero,1)}</div><pre class="cbanner">HERO ONLINE</pre><div class="ctitle">${esc(heroName()||'hero')}</div><pre class="clines">$ ./setup --done\n> profile written\n> ${esc(planSummary(planOf(S.profile)))} · ${LOCS[S.profile.loc].toLowerCase()} · ${S.profile.mins} min\n> next: your first workout. Boss fights to fine-tune your levels show up after 2 sessions</pre><div class="small muted">tap anywhere to continue</div></div>`;el.hidden=false;
  beep(523,.08);setTimeout(()=>beep(784,.18),140);
+}
+
+/* ============ fresh start ============ */
+// clears the log and makes today Day 1; hero, plan, gear, targets and levels stay
+function freshStart(){
+ const n=allDayKeys().filter(dayDone).length;
+ const msg=n?`Erase ${n} logged session${n>1?'s':''} and all XP, and start over from today?\n\nExport a backup first if you might want them back.`:'Clear the log and make today Day 1?';
+ if(!confirm(msg))return;
+ for(const id of Object.keys(S.days)){
+  if(!id.startsWith('d-'))continue;
+  if(S.store==='cloud'){S.days[id]={date:id.slice(2)};save(id)}else delete S.days[id];
+ }
+ editProfile(p=>{
+  p.start=TODAY();
+  for(const k of ['log','bosses','calib','seenReports','planHist','lastExport'])delete p[k];
+  if(p.hero)p.hero.created=TODAY();
+ });
+ editProfile(p=>{p.base=ALL_NODES.filter(nd=>nd.r.lad&&nodeMet(nd)).map(nd=>nd.id)});
+ S.tab='today';S.view=TODAY();S.form=null;S.flash='> Fresh start. Today is Day 1.';render();scrollTo(0,0);
 }
 
 /* ============ import ============ */
