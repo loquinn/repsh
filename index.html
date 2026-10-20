@@ -248,6 +248,7 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .avatar{image-rendering:pixelated;flex:none}
 .avatar.aura{filter:drop-shadow(0 0 6px var(--amber))}
 .tag-btn{margin-left:auto;min-height:32px;padding:4px 10px;font-size:11.5px}
+.notes .more{margin-top:-4px}.notes .more .bossbar{margin-top:8px}
 .hm i.r{background:transparent;border-style:dashed}
 ol.steps{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:13px}
 #setupflow{position:fixed;inset:0;z-index:55;background:var(--bg);overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
@@ -1196,12 +1197,14 @@ function vToday(){
  <div class="daynav"><h1>${DOW[dt.getDay()]} ${dt.getDate()} ${MON[dt.getMonth()]}${isToday?' <span class="tag a">today</span>':''}</h1>${isToday?'':'<button class="sm" data-a="day" data-v="0">Today</button>'}</div>`;
  {const hh=computeHero();if(isToday&&hh.streak>0){const nx=MILESTONES.find(m=>m>hh.streak);h+=`<div class="streakline">▲ ${hh.streak}-day streak${nx?` · ${nx-hh.streak} to ${nx}`:''}${hh.tokens?` · freezes ${'▣'.repeat(hh.tokens)}`:''}</div>`}}
  {const c=S.profile.commit;if(isToday&&c&&(c.time||c.place)&&!T.rest)h+=`<div class="commit">&gt; ${esc([c.time?fmt12(c.time):'',c.place,c.after?'after '+c.after:''].filter(Boolean).join(' · '))}</div>`}
- if(isToday&&!T.rest&&!dayDone(k)&&missedBefore(k)&&!computeHero().frozen.has(prevPlanned(k)))h+=`<div class="box quest"><div class="boxh"><h2>COMEBACK QUEST</h2><span class="tag am">+100 XP</span></div><div class="small">You missed your last planned day. That's normal. Any session today gets a 100 XP bonus. Getting back quickly matters more than anything else.</div>${T.slots&&dayMins(k)>10&&!(d.workout&&d.workout.result)?'<button class="sm" data-a="setmins" data-v="10">Make it a 10-minute version</button>':''}</div>`;
- if(isToday&&window.REPSH_APP&&allDayKeys().length>=3&&(!S.profile.lastExport||daysBetween(S.profile.lastExport,TODAY())>=14))h+=`<button class="bossbar" data-a="export">⇩ Back up your log · last backup ${S.profile.lastExport?daysBetween(S.profile.lastExport,TODAY())+' days ago':'never'} ›</button>`;
+ const notes=[];
+ if(isToday&&!T.rest&&!dayDone(k)&&missedBefore(k)&&!computeHero().frozen.has(prevPlanned(k)))notes.push(`<div class="box quest"><div class="boxh"><h2>COMEBACK QUEST</h2><span class="tag am">+100 XP</span></div><div class="small">Missed your last planned day. Any session today earns +100 XP. Showing up beats being perfect.</div>${T.slots&&dayMins(k)>10&&!(d.workout&&d.workout.result)?'<button class="sm" data-a="setmins" data-v="10">Make it a 10-minute version</button>':''}</div>`);
+ if(isToday&&window.REPSH_APP&&allDayKeys().length>=3&&(!S.profile.lastExport||daysBetween(S.profile.lastExport,TODAY())>=14))notes.push(`<button class="bossbar" data-a="export">⇩ Back up your log · last backup ${S.profile.lastExport?daysBetween(S.profile.lastExport,TODAY())+' days ago':'never'} ›</button>`);
  if(S.shareFallback)h+=`<div class="box"><textarea readonly id="share-out">${esc(S.shareFallback)}</textarea><button class="sm" data-a="sharedone">Done</button></div>`;
  if(S.flash)h+=`<div class="flash">${esc(S.flash)}</div>`;
- {const cal=isToday&&(computeHero().sessions>=2||S.profile.fitness==='trained')?calibPending():[];if(cal.length)h+=`<button class="bossbar" data-a="gotoboss">⚔ Calibrate: ${cal.length} quick test${cal.length>1?'s':''} set your starting levels ›</button>`;
- const due=isToday&&!cal.length?bossesDue():[];if(due.length&&!(T.slots&&!(d.workout&&d.workout.result)))h+=`<button class="bossbar" data-a="gotoboss">⚔ ${due.length} boss fight${due.length>1?'s':''} ready${(S.profile.bosses&&Object.keys(S.profile.bosses).length)?'':' · set your baselines'} ›</button>`}
+ {const cal=isToday&&(computeHero().sessions>=2||S.profile.fitness==='trained')?calibPending():[];if(cal.length)notes.splice(notes.length&&/quest/.test(notes[0])?1:0,0,`<button class="bossbar" data-a="gotoboss">⚔ Calibrate: ${cal.length} quick test${cal.length>1?'s':''} set your starting levels ›</button>`);
+ const due=isToday&&!cal.length?bossesDue():[];if(due.length&&!(T.slots&&!(d.workout&&d.workout.result)))notes.push(`<button class="bossbar" data-a="gotoboss">⚔ ${due.length} boss fight${due.length>1?'s':''} ready${(S.profile.bosses&&Object.keys(S.profile.bosses).length)?'':' · set your baselines'} ›</button>`)}
+ if(notes.length){h+=`<div class="notes">${notes[0]}${notes.length>1?`<details class="more"><summary class="small">+${notes.length-1} more</summary>${notes.slice(1).join('')}</details>`:''}</div>`}
  if(T.slots||(d.workout&&(d.workout.shared||d.workout.again)))h+=vWorkout(k,d);
  else if(T.run)h+=vRun(k,d);
  else if(T.rest)h+=vRest(k,d);
