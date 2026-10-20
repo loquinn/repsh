@@ -183,7 +183,7 @@ button.lnk{background:none;border:0;min-height:32px;padding:6px 8px;margin:-6px 
 .achi b{font-size:12px;color:var(--dim)}.achi span{font-size:11px;color:var(--dim)}
 .achi.on{border-style:solid;border-color:var(--accent)}.achi.on b{color:var(--accent)}.achi.on span{color:var(--fg)}
 .hm i.z{background:repeating-linear-gradient(45deg,var(--accent) 0 2px,transparent 2px 4px);border-color:var(--accent)}
-.htabs{flex-wrap:nowrap;gap:4px}.htabs button{flex:1 1 0;padding:6px 2px;font-size:11.5px;min-width:0}
+.htabs{flex-wrap:nowrap;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}.htabs::-webkit-scrollbar{display:none}.htabs button{flex:0 0 auto;padding:6px 10px;font-size:11.5px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}.chips button{flex:1 1 30%}
 .tree{display:flex;flex-direction:column;position:relative;padding-left:4px}
 .node{display:flex;gap:12px;position:relative;padding-bottom:14px}
@@ -246,11 +246,12 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .report{border-color:var(--amber)}
 .hav{margin-left:auto;display:flex;align-items:center}.hav+.status{margin-left:8px}
 .avatar{image-rendering:pixelated;flex:none}
-.avatar.aura{filter:drop-shadow(0 0 6px var(--amber))}.avatar.glow{filter:drop-shadow(0 0 6px var(--ok))}
+.avatar.aura{filter:drop-shadow(0 0 6px var(--amber))}.avatar.glow{filter:drop-shadow(0 0 6px var(--ok))}.avatar.glitch{filter:drop-shadow(1.5px 0 0 var(--accent)) drop-shadow(-1.5px 0 0 var(--ok))}
 .avatar.idle{animation:bob 1.4s steps(1) infinite}@keyframes bob{50%{transform:translateY(-5.9%)}}@media (prefers-reduced-motion:reduce){.avatar.idle{animation:none}}
 .loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
 .slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
 .lootprev{display:flex;gap:14px;align-items:center}
+.sigs{display:grid;gap:8px}.sigcard{display:grid;gap:3px;text-align:left;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--fg);font:inherit;cursor:pointer}.sigcard .sn{font:400 26px/1 var(--crt);color:var(--amber)}.sigcard .st{font-size:11px;letter-spacing:.04em;color:var(--dim);text-transform:uppercase}.sigcard .sb{font-size:12.5px}.sigcard.off{opacity:.45}
 .tag-btn{margin-left:auto;min-height:32px;padding:4px 10px;font-size:11.5px}
 .notes .more{margin-top:-4px}.notes .more .bossbar{margin-top:8px}
 .hm i.r{background:transparent;border-style:dashed}
@@ -691,7 +692,7 @@ function finalFormat(k,reroll,depth=0){
 }
 function prevTrainingFormat(k,depth=0){
  for(let n=1;n<=3;n++){const pk=addDays(k,-n);const t=TEMPLATES[typeOf(pk)];if(!t.slots)continue;
-  const d=getDay(pk);if(d.workout)return d.workout.format;if(!d.reroll){const rm=rematchFor(pk,typeOf(pk),dayLoc(pk),dayMins(pk));if(rm)return rm.format}return finalFormat(pk,d.reroll||0,depth)}
+  const d=getDay(pk);if(d.workout)return d.workout.format;if(!d.reroll){const sg=sigPick(pk);if(sg)return sg.f;const rm=rematchFor(pk,typeOf(pk),dayLoc(pk),dayMins(pk));if(rm)return rm.format}return finalFormat(pk,d.reroll||0,depth)}
  return null;
 }
 let GEN={};const clearGen=()=>{GEN={};HERO=null;XSTAT=null;applySched()};
@@ -799,7 +800,7 @@ function generate(k,reroll=0){
  const loc=dayLoc(k),mins=dayMins(k),ck=k+':'+reroll+':'+loc+':'+mins+':'+((getDay(k).checkin||{}).score||'');if(GEN[ck])return GEN[ck];
  const type=typeOf(k),T=TEMPLATES[type];
  if(!T.slots)return null;
- if(!reroll){const rm=rematchFor(k,type,loc,mins);if(rm)return GEN[ck]=rm}
+ if(!reroll){const sg=sigFor(k);if(sg)return GEN[ck]=sg;const rm=rematchFor(k,type,loc,mins);if(rm)return GEN[ck]=rm}
  const {r}=formatDraw(k,reroll);let f=finalFormat(k,reroll);
  const deload=isDeload(k),ci=getDay(k).checkin,recovery=!!(ci&&ci.score<=RECOVERY_AT),newbie=isNewbie(k);
  const dl=(deload?.75:1)*(recovery?.8:1),m=mins/20,work=f==='intervals'?(deload||recovery||newbie?30:40):null;
@@ -825,6 +826,93 @@ function generate(k,reroll=0){
  const out={type,title:T.title,format:f,deload,recovery,loc,mins,rounds,items,fin};if(work)out.work=work;
  return GEN[ck]=nameIt(out);
 }
+/* ============ signature workouts ============
+   Fixed benchmark workouts: same moves and reps every time, so times compare.
+   Round-based ones scale by rounds (3/6 = half); chippers scale every rep count.
+   focus decides which days they can land on. lvl 1 easy .. 4 hard. */
+const SIGS=[
+ {id:'bootstrap',n:'BOOTSTRAP',focus:'full',lvl:1,f:'fortime',R:6,items:[['air_sq',10],['pu',6],['mc',8],['sq_thrust',5]],d:'The first benchmark. Simple moves at a steady pace. A clean baseline for everything after it.'},
+ {id:'hotfix',n:'HOTFIX',focus:'lower',lvl:1,f:'fortime',R:6,items:[['rev_lunge',6],['bridge',12],['air_sq',12],['plank',20]],d:'Legs and glutes without any jumping. Short, honest and quiet enough for an apartment.'},
+ {id:'defrag',n:'DEFRAG',focus:'full',lvl:1,f:'fortime',R:4,items:[['cossack',6],['bridge',15],['birddog',8],['side_plank',20],['inchworm_c',5]],d:'Low-impact strength and control. Hips, glutes and trunk, all moving through full range.'},
+ {id:'nullptr',n:'NULLPTR',focus:'core',lvl:2,f:'fortime',R:4,items:[['vup',10],['bicycle',10],['legraise',10],['plank',30]],d:'Core only. Four rounds that leave nothing in the tank for your abs.'},
+ {id:'handshake',n:'HANDSHAKE',focus:'upper',lvl:2,f:'fortime',R:5,items:[['pu',10],['pike_pu',6],['cdip',10],['sq_thrust',8]],d:'Push day benchmark. Chest, shoulders and triceps, with squat thrusts to keep the heart rate up.'},
+ {id:'deadlock',n:'DEADLOCK',focus:'upper',lvl:2,f:'fortime',R:6,items:[['pullup',2],['db_row10',8],['hollow_rock',10],['kb_swing',12]],d:'Pull day benchmark. Small sets of pull-ups that add up, with rows and swings for the whole back.'},
+ {id:'firmware',n:'FIRMWARE',focus:'upper',lvl:2,f:'fortime',R:5,items:[['arnold10',10],['renegade',5],['hammer',10],['cdip',12],['mc',10]],d:'Dumbbell upper body. Shoulders, back, arms, then a fast finish on the floor.'},
+ {id:'mainframe',n:'MAINFRAME',focus:'full',lvl:2,f:'fortime',R:5,items:[['goblet25',12],['pu',10],['kb_row',8],['kb_swing',15],['plank',30]],d:'The strength benchmark. Every big pattern with the kettlebell, at a pace you can hold.'},
+ {id:'bitflip',n:'BITFLIP',focus:'cond',lvl:2,f:'chipper',items:[['jj',80],['mc',30],['air_sq',50],['squat_jack',30],['burpee',20],['plank_jack',30]],d:'One pass, all conditioning. Light moves first, heavy breathing last.'},
+ {id:'overclock',n:'OVERCLOCK',focus:'lower',lvl:3,f:'fortime',R:5,items:[['jump_sq',12],['jump_lunge',6],['kb_swing',15],['wall_sit',30]],d:'Explosive legs. Jumps, swings, then a wall sit while your legs are already burning.'},
+ {id:'checksum',n:'CHECKSUM',focus:'full',lvl:3,f:'fortime',R:5,items:[['kb_swing',15],['kb_clean',5],['kb_press',5],['goblet25',10]],d:'A kettlebell complex. Hinge, clean, press, squat, without ever putting the bell down for long.'},
+ {id:'segfault',n:'SEGFAULT',focus:'full',lvl:3,f:'chipper',items:[['burpee',15],['air_sq',40],['pu',25],['burpee',10],['air_sq',30],['pu',20],['burpee',5],['air_sq',20],['pu',15]],d:'A descending pyramid. Every tier gets shorter, so push the pace as the numbers drop.'},
+ {id:'quine',n:'QUINE',focus:'full',lvl:3,f:'chipper',items:[['burpee',20],['air_sq',30],['mc',20],['pu',20],['mc',20],['air_sq',30],['burpee',20]],d:'A palindrome. It reads the same both ways, and the second half hurts more.'},
+ {id:'uptime',n:'UPTIME',focus:'cond',lvl:3,f:'fortime',R:6,items:[['hk',30],['pu',10],['sq_calf',15],['plank_jack',15]],d:'The endurance benchmark. Six rounds of nothing heavy, all about keeping moving.'},
+ {id:'halting',n:'HALTING',focus:'lower',lvl:3,f:'chipper',items:[['air_sq',60],['rev_lunge',20],['jump_sq',30],['bss',12],['wall_sit',60],['sl_bridge',15]],d:'A leg chipper. Squats, lunges, jumps, split squats, then a long wall sit to close it out.'},
+ {id:'uplink',n:'UPLINK',focus:'full',lvl:3,f:'fortime',R:6,items:[['sprint_pole',1],['pu',10],['air_sq',15]],d:'Outdoor benchmark. Sprint, then push-ups and squats on the grass. Only shows up on outside days.'},
+ {id:'rootkit',n:'ROOTKIT',focus:'upper',lvl:4,f:'fortime',R:5,items:[['pullup',3],['diam_pu',8],['hkr',8],['pike_pu',8],['burpee',6]],d:'Advanced upper body. Pull-ups and diamond push-ups under fatigue. Earn this one.'},
+ {id:'bluescreen',n:'BLUESCREEN',focus:'full',lvl:4,f:'chipper',items:[['burpee',30],['air_sq',80],['pu',50],['mc',40],['jj',80],['burpee',30]],d:'The big one. Sixty burpees bookend it. Break the push-ups into sets early.'}
+];
+const SIG_BY=Object.fromEntries(SIGS.map(s=>[s.id,s]));
+const LVL_TXT=['','beginner','intermediate','advanced','elite'],FOCUS_TXT={full:'full body',upper:'upper body',lower:'lower body',cond:'conditioning',core:'core'};
+const FRAC={'1/3':'⅓','1/2':'½','2/3':'⅔','1/4':'¼','3/4':'¾','1/5':'⅕','2/5':'⅖','3/5':'⅗','4/5':'⅘','1/6':'⅙','5/6':'⅚'};
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const fracLabel=(a,b)=>{if(a>=b)return '';const g=gcd(a,b),k=`${a/g}/${b/g}`;return FRAC[k]||k};
+// versions, easiest first: {label, r (rounds) or s (rep scale)}
+function sigVersions(sg){
+ if(sg.f==='fortime'){const out=[];for(const r of [Math.ceil(sg.R/3),Math.round(sg.R/2),Math.round(sg.R*2/3),sg.R])if(r>=1&&!out.some(v=>v.r===r))out.push({r,label:fracLabel(r,sg.R)});return out}
+ return [[1,3],[1,2],[2,3],[1,1]].map(([a,b])=>({s:a/b,label:fracLabel(a,b)}));
+}
+const sigTitle=(sg,v)=>(v.label?v.label+' ':'')+sg.n;
+function sigItems(sg,v,loc){
+ return sg.items.map(([id,amt])=>{const e=exById(id);if(!e)return null;const u=e.ex.u;let a=amt*(v.s||1);a=u==='sec'?Math.max(10,Math.round(a/5)*5):Math.max(1,Math.round(a));
+  return {pat:e.pat,id,n:locText(e.ex.n,loc),u,c:locText(e.ex.c||'',loc),amt:a}}).filter(Boolean);
+}
+// a signature only shows up if every move fits your gear, location and impact setting
+function sigOk(sg,loc){const eq=equipFor(loc);return sg.items.every(([id])=>{const e=exById(id);return e&&optOk(e.ex,eq,loc)&&!(S.profile.ban||[]).includes(id)})}
+function sigAttempts(id,exceptK){const out=[];for(const dk of allDayKeys()){if(dk===exceptK)continue;const w=getDay(dk).workout;if(w&&w.result&&w.signature===id)out.push({k:dk,w})}return out.sort((a,b)=>a.k<b.k?1:-1)}
+// how ready you are for harder benchmarks: starting fitness plus one step per 6 weeks of training
+function sigTier(k){return Math.min(4,({new:1,back:2,trained:3}[S.profile.fitness]||2)+Math.floor(weekIndex(k)/6))}
+// the coach's version: start where your fitness says, move up after it feels easy or right twice, back off after too hard
+function sigVersionIdx(sg,k){
+ const V=sigVersions(sg),at=sigAttempts(sg.id,k).filter(a=>a.k<k);let i;
+ if(!at.length){const t=sigTier(k);i=Math.max(0,Math.min(V.length-1,t-1-Math.max(0,sg.lvl-t)))}
+ else{
+  const last=at[0].w,li=Math.max(0,V.findIndex(v=>v.label===last.ver)),r=last.result.rating;
+  const sameRight=at.filter(a=>a.w.ver===last.ver&&a.w.result.rating==='right'&&!a.w.result.dnf).length;
+  if(last.result.dnf||r==='hard')i=li-1;else if(r==='easy'||(r==='right'&&sameRight>=2))i=li+1;else i=li;
+ }
+ if(dayMins(k)<=10)i=Math.min(i,0);
+ return Math.max(0,Math.min(V.length-1,i));
+}
+function buildSig(sg,vi,k,extra={}){
+ const V=sigVersions(sg),v=V[Math.max(0,Math.min(V.length-1,vi))],loc=dayLoc(k),type=typeOf(k);
+ const w={type,title:'SIGNATURE · '+FOCUS_TXT[sg.focus].toUpperCase(),format:sg.f,deload:false,recovery:false,loc,rounds:sg.f==='fortime'?v.r:null,items:sigItems(sg,v,loc),fin:null,signature:sg.id,ver:v.label,...extra};
+ w.mins=Math.min(45,Math.max(10,Math.ceil(estimateMins(w)*1.6/5)*5));
+ w.name=sigTitle(sg,v);w.sig='SIG|'+sg.id+'|'+v.label;
+ return w;
+}
+const tmplFocus=T=>{const s=T.slots||[];const up=s.some(p=>['push','pull','row','vpush','dip','arms'].includes(p)),low=s.some(p=>['squat','hinge','lunge'].includes(p));return up&&low?'full':up?'upper':low?'lower':'full'};
+const SIG_FITS={upper:['upper','full','cond','core'],lower:['lower','full','cond','core'],full:['upper','lower','full','cond','core']};
+// one signature a week from week 2, on the week's 2nd training day; none on deload weeks or after a rough check-in
+function sigSlot(k){
+ const wi=weekIndex(k);if(wi<1||isDeload(k))return false;
+ const ci=getDay(k).checkin;if(ci&&ci.score<=RECOVERY_AT)return false;
+ const mon=monOf(k);let n=0;
+ for(let i=0;i<7;i++){const d=addDays(mon,i);if(d<S.profile.start)continue;if(TEMPLATES[typeOf(d)].slots&&++n===2)return d===k}
+ return false;
+}
+function sigPick(k,{slotCheck=true}={}){
+ if(slotCheck&&!sigSlot(k))return null;
+ const loc=dayLoc(k),T=TEMPLATES[typeOf(k)],fits=SIG_FITS[tmplFocus(T)],tier=sigTier(k);
+ const el=SIGS.filter(sg=>fits.includes(sg.focus)&&sigOk(sg,loc)&&sg.lvl<=tier+1&&(sg.id!=='uplink'||loc==='yard'));
+ if(!el.length)return null;
+ const seen=el.filter(sg=>sigAttempts(sg.id,k).some(a=>a.k<k)),fresh=el.filter(sg=>!seen.includes(sg));
+ const lastK=sg=>(sigAttempts(sg.id,k).find(a=>a.k<k)||{k:''}).k;
+ const due=seen.filter(sg=>daysBetween(lastK(sg),k)>=21).sort((a,b)=>lastK(a)<lastK(b)?-1:1);
+ // alternate: even weeks retest something you've done (beat your time), odd weeks try something new
+ const retest=weekIndex(k)%2===0&&due.length;
+ const pool=retest?due.slice(0,2):fresh.length?fresh.sort((a,b)=>a.lvl-b.lvl).slice(0,3):due.length?due.slice(0,2):el;
+ return pool[Math.floor(rng(hash('sig:'+k))()*pool.length)];
+}
+function sigFor(k){const sg=sigPick(k);return sg?buildSig(sg,sigVersionIdx(sg,k),k):null}
 function workoutFor(k){const d=getDay(k);return d.workout||generate(k,d.reroll||0)}
 const WALKS=[
  {name:'BRISK WALK',desc:'5 min easy, 20 min at a pace where talking takes effort, 5 min easy.',steps:[['Easy walk',300],['Brisk walk',1200],['Easy walk',300]]},
@@ -1031,7 +1119,7 @@ function decodeWorkout(text){
  let o;try{o=JSON.parse(b64d(m[1]))}catch(e){throw new Error('the code looks damaged or cut off')}
  if(!o||typeof o!=='object'||!Object.hasOwn(FORMATS,o.f)||!Array.isArray(o.i)||!o.i.length)throw new Error('the code is incomplete');
  const loc=o.l==='yard'?'yard':'home';
- const items=o.i.slice(0,8).filter(Array.isArray).map(([id,amt,u,pat])=>{id=String(id).slice(0,40);const e=exById(id);return {pat:e?e.pat:Object.hasOwn(PAT,pat)?pat:'cardio',id,n:locText(e?e.ex.n:id,loc),u:['reps','side','sec'].includes(u)?u:'reps',c:e?locText(e.ex.c||'',loc):'',amt:Math.max(1,Math.min(999,+amt||1))}});
+ const items=o.i.slice(0,12).filter(Array.isArray).map(([id,amt,u,pat])=>{id=String(id).slice(0,40);const e=exById(id);return {pat:e?e.pat:Object.hasOwn(PAT,pat)?pat:'cardio',id,n:locText(e?e.ex.n:id,loc),u:['reps','side','sec'].includes(u)?u:'reps',c:e?locText(e.ex.c||'',loc):'',amt:Math.max(1,Math.min(999,+amt||1))}});
  if(!items.length)throw new Error('the code is incomplete');
  const fi=items.find(it=>it.id===String(o.x));
  return {type:Object.hasOwn(TEMPLATES,o.t)&&TEMPLATES[o.t].slots?o.t:'fbA',title:'SHARED WORKOUT',format:o.f,name:String(o.n||'SHARED').slice(0,20).toUpperCase(),deload:false,recovery:false,loc,mins:[10,20,30].includes(+o.m)?+o.m:20,rounds:o.r?Math.max(1,Math.min(20,Math.round(+o.r)||4)):null,items,fin:fi?{id:fi.id,n:fi.n,u:fi.u,pat:fi.pat}:null,shared:true,...(o.f==='intervals'&&[30,40].includes(+o.w)?{work:+o.w}:{})};
@@ -1083,7 +1171,11 @@ const ACH=[
  {id:'pr3',n:'HIGH SCORE',d:'Beat a boss personal record 3 times',xp:200,t:h=>h.prs>=3},
  {id:'sk5',n:'SKILL TREE',d:'Unlock 5 skills',xp:150,t:h=>h.skills.length>=5},
  {id:'sk15',n:'BRANCHING OUT',d:'Unlock 15 skills',xp:400,t:h=>h.skills.length>=15},
- {id:'terrain',n:'ALL TERRAIN',d:'Train both at home and outside',xp:100,t:h=>h.locs>=2}
+ {id:'terrain',n:'ALL TERRAIN',d:'Train both at home and outside',xp:100,t:h=>h.locs>=2},
+ {id:'sig1',n:'BENCHMARKED',d:'Finish a signature workout',xp:75,t:h=>h.sigs>=1},
+ {id:'sig5',n:'COLLECTOR',d:'Finish 5 different signature workouts',xp:250,t:h=>h.sigKinds>=5},
+ {id:'sigfull',n:'FULL VERSION',d:'Finish the full version of a signature',xp:200,t:h=>h.sigFull>=1},
+ {id:'sigpr',n:'FASTER BUILD',d:'Beat a signature time 3 times',xp:200,t:h=>h.sigPRs>=3}
 ];
 // rough lifetime rep count for one logged move
 function estReps(w,it){
@@ -1105,7 +1197,7 @@ function computeHero(){
  if(HERO)return HERO;
  const g=S.profile.goals,keys=allDayKeys(),t=TODAY();
  const attr={STR:0,END:0,CORE:0,MOB:0,DISC:0};
- const finSeen={};const h={fins:0,finPRs:0,comebacks:0,perfect:0,xp:0,reps:0,burpees:0,workouts:0,runs:0,mobs:0,proteinDays:0,weighIns:0,hardOnes:0,outSprint:false,locs:0,waterRun:0,perDay:{}};
+ const finSeen={};const sigBest={},sigKinds=new Set();const h={sigs:0,sigPRs:0,sigFull:0,sigKinds:0,fins:0,finPRs:0,comebacks:0,perfect:0,xp:0,reps:0,burpees:0,workouts:0,runs:0,mobs:0,proteinDays:0,weighIns:0,hardOnes:0,outSprint:false,locs:0,waterRun:0,perDay:{}};
  const locs=new Set();const normLoc=l=>l==='out'?'yard':(l||'home');let wr=0,prev=null;
  const weighWeeks=new Set();
  for(const k of keys){
@@ -1125,10 +1217,11 @@ function computeHero(){
   if(+d.walk>=g.walk){x+=15;attr.DISC+=2;attr.END+=1}
   if(d.weight){h.weighIns++;if(!weighWeeks.has(monOf(k))){weighWeeks.add(monOf(k));x+=10;attr.DISC+=1}}
   if(d.meas&&Object.values(d.meas).some(Boolean))x+=10;
+  {const w=d.workout;if(w&&w.signature&&w.result&&!w.result.dnf){h.sigs++;x+=50;sigKinds.add(w.signature);if(!w.ver)h.sigFull++;const sc=scoreOf(w);if(sc!=null){if(sigBest[w.name]!=null&&sc>sigBest[w.name]){h.sigPRs++;x+=100}sigBest[w.name]=Math.max(sigBest[w.name]??-Infinity,sc)}}}
   {const w=d.workout;if(w&&w.fin&&w.result&&w.result.fin!=null){h.fins++;x+=25;const id=w.fin.id;if(finSeen[id]!=null&&w.result.fin>finSeen[id]){h.finPRs++;x+=50}finSeen[id]=Math.max(finSeen[id]??-1,w.result.fin)}}
   h.perDay[k]=x;h.xp+=x;
  }
- h.locs=locs.size;
+ h.locs=locs.size;h.sigKinds=sigKinds.size;
  h.ladderUps=(S.profile.log||[]).filter(e=>/▲/.test(e.m)).length;attr.STR+=h.ladderUps*10;
  // streak with freeze tokens: a token is earned every 7 straight days (max 2) and covers one missed day
  let cur=0,best=0,tok=0;const frozen=new Set();const first=keys.find(dayDone);
@@ -1248,13 +1341,14 @@ function vWorkout(k,d){
  h+=`<div class="box ${done?'':'hot'}">
   <div class="boxh"><h2>${esc(w.title)}</h2><span class="tag a">${fmtL(w)}</span></div>
   <div class="code">${esc(w.name)}</div>
+  ${w.signature&&!done?sigCoachLine(w,k):''}
   ${done||w.shared||w.again?'':(()=>{const L=dayLoc(k),M=dayMins(k);return `<div class="switch"><div class="seg" role="group" aria-label="Where">${Object.entries(LOCS).map(([id,l])=>`<button class="sm ${L===id?'on':''}" data-a="setloc" data-v="${id}">${l}</button>`).join('')}</div><div class="seg" role="group" aria-label="Minutes">${[10,20,30].map(x=>`<button class="sm ${M===x?'on':''}" data-a="setmins" data-v="${x}">${x}m</button>`).join('')}</div></div>`})()}
   ${(()=>{const at=attemptsOf(w.name,k,w.sig).filter(a=>a.k<k||!done);if(!at.length)return w.rematch&&!done?`<div class="small" style="color:var(--amber)">REMATCH · same workout as ${esc(dateShort(w.rematch.k))}. Beat ${esc(w.rematch.v)}.</div>`:'';const b=bestOf(at),l=at[0];
    return `<div class="small" style="color:var(--amber)">${w.rematch&&!done?'REMATCH · ':''}Last ${esc(dateShort(l.k))}: ${esc(resultText(l.w))}${b&&b!==l?` · best ${esc(resultText(b.w))}`:''} · <button class="lnk" data-a="histname" data-v="${esc(w.name)}">history ›</button></div>`})()}
   <div class="chipsrow"><span class="tag">~${estimateMins(w)} min</span><span class="tag" aria-label="Difficulty ${difficulty(w)} of 5">${dots(difficulty(w))}</span>${d.checkin?`<span class="tag ${w.recovery?'am':'ok'}">ready ${d.checkin.score.toFixed(1)}</span>`:''}</div>
   <div class="muted small">${esc(fmtD(w))}${w.deload?' <span style="color:var(--amber)">Deload week: volume at 75%.</span>':''}</div>
   ${w.shared?'<div class="small" style="color:var(--amber)">Shared workout from a code. Swap any move you can\'t do.</div>':''}${w.recovery?'<div class="warnbox">Recovery mode: about 20% less volume today, from your check-in.</div>':''}
-  <div class="list">${w.items.map((it,i)=>`<div class="row"><span class="amt">${w.format==='ladder'?'+'+amtText(it.amt,it.u):w.format==='emom'?'M'+(i+1):amtText(it.amt,it.u)}</span><span class="nm">${w.format==='emom'?amtText(it.amt,it.u)+' · ':''}${esc(it.n)}<small>${esc(it.c||'')} <a class="demo" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(it.n)+' exercise form')}" target="_blank" rel="noopener">demo ↗</a>${done?'':` <button class="lnk" data-a="swap" data-v="${i}">⇄ swap</button> <button class="lnk" data-a="ban" data-v="${i}">⊘ hide</button>`}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}${w.fin?`<div class="row fin"><span class="amt">MAX</span><span class="nm">Finisher · ${esc(w.fin.n)}<small>${w.fin.u==='sec'?'One max hold':'One set of max reps'} after the workout. Stop one rep before your form breaks.${(()=>{const b=finBest(w.fin.id);return b?` Record: ${b.v}.`:''})()}</small></span><span class="pat">PR</span></div>`:''}</div>`;
+  <div class="list">${w.items.map((it,i)=>`<div class="row"><span class="amt">${w.format==='ladder'?'+'+amtText(it.amt,it.u):w.format==='emom'?'M'+(i+1):amtText(it.amt,it.u)}</span><span class="nm">${w.format==='emom'?amtText(it.amt,it.u)+' · ':''}${esc(it.n)}<small>${esc(it.c||'')} <a class="demo" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(it.n)+' exercise form')}" target="_blank" rel="noopener">demo ↗</a>${done||w.signature?'':` <button class="lnk" data-a="swap" data-v="${i}">⇄ swap</button> <button class="lnk" data-a="ban" data-v="${i}">⊘ hide</button>`}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}${w.fin?`<div class="row fin"><span class="amt">MAX</span><span class="nm">Finisher · ${esc(w.fin.n)}<small>${w.fin.u==='sec'?'One max hold':'One set of max reps'} after the workout. Stop one rep before your form breaks.${(()=>{const b=finBest(w.fin.id);return b?` Record: ${b.v}.`:''})()}</small></span><span class="pat">PR</span></div>`:''}</div>`;
  if(done){
   const r=w.result;
   h+=`<div class="grid3"><div class="stat"><b>${r.time!=null?fmt(r.time):(r.rounds!=null?r.rounds+(r.reps?'+'+r.reps:''):'✓')}</b><span>${r.time!=null?'time':r.rounds!=null?(w.format==='ladder'?'rungs':'rounds'):'complete'}</span></div><div class="stat"><b>${{easy:'EZ',right:'OK',hard:'HARD'}[r.rating]||'—'}</b><span>felt</span></div><div class="stat"><b>${(r.prog||[]).length}</b><span>adjustments</span></div></div>
@@ -1264,13 +1358,18 @@ function vWorkout(k,d){
  }else if(S.form===k){
   h+=vResultForm(k,w);
  }else{
-  h+=`<div class="btns">${w.shared||w.again?`<button class="ghost sm" data-a="dropload">✕ Back to today's plan</button>`:'<button class="ghost sm" data-a="reroll">↻ Reroll</button>'}<button class="ghost sm" data-a="logmanual">Log without timer</button></div>
+  h+=`<div class="btns">${w.shared||w.again?`<button class="ghost sm" data-a="dropload">✕ Back to today's plan</button>`:(w.signature?'<button class="ghost sm" data-a="reroll">↻ Skip, normal workout</button>':'<button class="ghost sm" data-a="reroll">↻ Reroll</button>')}<button class="ghost sm" data-a="logmanual">Log without timer</button></div>
   <details class="more"><summary class="small">⋯ More</summary><div class="btns"><button class="ghost sm" data-a="sharecode">⇪ Share as a code</button><button class="ghost sm" data-a="codebox">⌨ Enter a code</button></div></details>`;
  }
  h+=`</div>`;
  h+=`<div class="box"><details ${done&&!d.cool?'open':''}><summary><span>Cool-down · ${Math.round(seqSecs(cool)/60)} min</span><span class="tag ${d.cool?'ok':''}" style="margin-left:auto">${d.cool?'done':'stretch'}</span></summary>
   ${seqList(cool)}<div class="btns" style="margin-top:10px"><button data-a="seq" data-v="cool">▶ Guided cool-down</button><button class="ghost ${d.cool?'on':''}" data-a="mark" data-v="cool">${d.cool?'✓ Done':'Mark done'}</button></div></details></div>`;
  return h;
+}
+function sigCoachLine(w,k){
+ const sg=SIG_BY[w.signature];if(!sg)return '';const V=sigVersions(sg),vi=V.findIndex(v=>v.label===w.ver),at=sigAttempts(sg.id,k);
+ const why=!at.length?`First time. The coach picked the ${w.ver||'full'} version for your level, so this sets your baseline.`:at[0].w.ver!==w.ver?(vi>V.findIndex(v=>v.label===at[0].w.ver)?`Moved up from ${at[0].w.ver||'full'} after your last attempt felt manageable.`:`Stepped down from ${at[0].w.ver||'full'} after your last attempt felt too hard.`):`Same version as last time. Beat ${resultText(at[0].w)}.`;
+ return `<div class="small" style="color:var(--amber)">&gt; ${esc(sg.d)}</div><div class="small muted">Coach: ${esc(why)} No swaps on benchmarks, so times stay comparable.</div>`;
 }
 function vResultForm(k,w){
  const r=w.result||(S.form===k?S.pendingResult:null)||{},F=FORMATS[w.format];
@@ -1446,12 +1545,13 @@ function vBody(){
  }
  return h;
 }
-const HTABS=[['me','Hero'],['skills','Skills'],['boss','Bosses'],['moves','Moves'],['log','Log']];
+const HTABS=[['me','Hero'],['sigs','Signatures'],['boss','Bosses'],['skills','Skills'],['moves','Moves'],['log','Log']];
 function vHero(){
  const ht=S.heroTab||'me';
  const nav=`<div class="seg htabs">${HTABS.map(([id,l])=>`<button class="sm ${ht===id?'on':''}" data-a="htab" data-v="${id}">${l}</button>`).join('')}</div>`;
  const flash=S.flash?`<div class="flash">${esc(S.flash)}</div>`:'';
  if(ht==='skills')return nav+flash+vSkills();
+ if(ht==='sigs')return nav+flash+(S.sigView?vSigDetail(S.sigView):vSigs());
  if(ht==='moves')return nav+flash+vMoves();
  if(ht==='boss')return nav+flash+vBosses();
  if(ht==='log')return nav+flash+(S.histName?vHistName(S.histName):vHistory()+vReports());
@@ -1513,7 +1613,7 @@ function vCharacter(){
  <div class="box"><div class="grid3"><div class="stat"><b>${h.reps.toLocaleString()}</b><span>lifetime reps</span></div><div class="stat"><b>${h.burpees}</b><span>burpees</span></div><div class="stat"><b>${h.sessions}</b><span>sessions</span></div></div></div>
  <div class="box"><div class="boxh"><h2>ACHIEVEMENTS</h2><span class="tag">${h.ach.length}/${ACH.length}</span></div>
  <div class="ach">${ACH.map(a=>{const on=h.ach.includes(a.id);return `<div class="achi ${on?'on':''}"><b>${on?'■':'□'} ${a.n}</b><span>${esc(a.d)} · +${a.xp}</span></div>`}).join('')}</div></div>
- <div class="box"><div class="boxh"><h2>XP TABLE</h2></div><div class="list small">${[['Workout logged',100],['Run or mobility day','100 / 80'],['Warm-up / cool-down','10 each'],['Protein goal',20],['Walk goal',15],['Water goal',10],['Weekly weigh-in',10],['Measurements',10],['Every 7-day streak',50],['Comeback after a miss','+100'],['Perfect week',150],['Max-reps finisher','25'],['Finisher record','+50']].map(([a,b])=>`<div class="row"><span class="nm">${a}</span><span class="muted">${b}</span></div>`).join('')}</div></div>
+ <div class="box"><div class="boxh"><h2>XP TABLE</h2></div><div class="list small">${[['Workout logged',100],['Run or mobility day','100 / 80'],['Warm-up / cool-down','10 each'],['Protein goal',20],['Walk goal',15],['Water goal',10],['Weekly weigh-in',10],['Measurements',10],['Every 7-day streak',50],['Comeback after a miss','+100'],['Perfect week',150],['Max-reps finisher','25'],['Finisher record','+50'],['Signature workout','+50'],['Signature record','+100']].map(([a,b])=>`<div class="row"><span class="nm">${a}</span><span class="muted">${b}</span></div>`).join('')}</div></div>
  `;
 }
 function vReports(){
@@ -1564,6 +1664,40 @@ function doAgain(name){
  const w=structuredClone(a.w);delete w.result;delete w.swaps;delete w.rematch;delete w.shared;w.again=true;w.deload=false;w.recovery=false;
  S.histName=null;S.tab='today';S.view=k;
  undoable('Loaded '+name,()=>editDay(k,dd=>{dd.workout=w}));S.flash=`> ${name} is today's workout. Beat ${resultText(a.w)}.`;render();scrollTo(0,0);setTimeout(showToast,0);
+}
+function sigBestBy(id){const at=sigAttempts(id),m={};for(const a of at){const v=a.w.ver||'';const b=m[v];if(!a.w.result.dnf&&(b==null||scoreOf(a.w)>scoreOf(b.w)))m[v]=a}return m}
+
+function vSigs(){
+ const loc=S.profile.loc||'home',t=TODAY();
+ const card=sg=>{const at=sigAttempts(sg.id),bb=sigBestBy(sg.id),V=sigVersions(sg),ok=sigOk(sg,sg.id==='uplink'?'yard':loc)||sigOk(sg,'yard');
+  const best=V.filter(v=>bb[v.label]).map(v=>`${v.label||'full'} ${resultText(bb[v.label].w)}`).join(' · ');
+  return `<button class="sigcard ${ok?'':'off'}" data-a="sigopen" data-v="${sg.id}"><span class="sn">${esc(sg.n)}</span><span class="st">${FOCUS_TXT[sg.focus]} · ${LVL_TXT[sg.lvl]} · ⅓ to full: ~${estimateMins(buildSig(sg,0,t))}–${estimateMins(buildSig(sg,V.length-1,t))} min</span><span class="sb">${!ok?'needs gear you have not added':at.length?`${at.length} attempt${at.length>1?'s':''} · best ${esc(best||'—')}`:'not attempted yet'}</span></button>`};
+ const done=SIGS.filter(sg=>sigAttempts(sg.id).length).length;
+ return `<div class="prompt">$ <i>sig</i> --list</div>
+ <div class="box"><div class="boxh"><h2>SIGNATURES</h2><span class="tag">${done}/${SIGS.length} tried</span></div>
+ <div class="small muted">Fixed benchmark workouts, the same every time so your times show real progress. From week 2 the coach puts one in most weeks, alternating a new one with a retest. It starts you on a partial version (⅓, ½, ⅔) and moves you up as they get easier.</div></div>
+ <div class="sigs">${SIGS.map(card).join('')}</div>`;
+}
+function vSigDetail(id){
+ const sg=SIG_BY[id];if(!sg)return '';const k=TODAY(),V=sigVersions(sg),coach=sigVersionIdx(sg,k),vi=S.sigVer??coach,w=buildSig(sg,vi,k),at=sigAttempts(id),bb=sigBestBy(id);
+ const ok=sigOk(sg,dayLoc(k)),cur=at.filter(a=>(a.w.ver||'')===V[vi].label);
+ const pts=cur.filter(a=>!a.w.result.dnf&&scoreOf(a.w)!=null).map(a=>[a.k,scoreOf(a.w)]).reverse();
+ return `<div class="prompt">$ <i>sig</i> --show ${esc(sg.n.toLowerCase())}</div><button class="sm ghost" data-a="sigback">‹ All signatures</button>
+ <div class="box hot"><div class="boxh"><h2>${esc(sg.n)}</h2><span class="tag a">${fmtL(w)}</span></div>
+ <div class="small" style="color:var(--amber)">&gt; ${esc(sg.d)}</div>
+ <div class="chipsrow"><span class="tag">${FOCUS_TXT[sg.focus]}</span><span class="tag">${LVL_TXT[sg.lvl]}</span><span class="tag">~${estimateMins(w)} min</span><span class="tag">${dots(difficulty(w))}</span></div>
+ <div><div class="small muted" style="margin-bottom:6px">VERSION · coach pick: ${esc(V[coach].label||'full')}</div><div class="seg">${V.map((v,i)=>`<button class="sm ${i===vi?'on':''}" data-a="sigver" data-v="${i}">${v.label||'full'}${bb[v.label]?' ✓':''}</button>`).join('')}</div></div>
+ <div class="muted small">${esc(fmtD(w))}</div>
+ <div class="list">${w.items.map(it=>`<div class="row"><span class="amt">${amtText(it.amt,it.u)}</span><span class="nm">${esc(it.n)}<small>${esc(it.c||'')}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}</div>
+ ${cur.length?`<div class="small muted">${esc(sigTitle(sg,V[vi]))} · ${cur.length} attempt${cur.length>1?'s':''}${bb[V[vi].label]?' · best '+esc(resultText(bb[V[vi].label].w)):''}</div>${pts.length>1?sparkline(pts,360,60):''}`:''}
+ <div class="btns">${ok?`<button class="pri" data-a="sigdo" data-v="${id}" data-p="${vi}">▶ Do ${esc(sigTitle(sg,V[vi]))} today</button>`:'<div class="warnbox">Needs gear or a location you have not set. Check Setup → Equipment.</div>'}</div></div>
+ ${at.length?`<div class="box"><div class="boxh"><h2>HISTORY</h2></div><div class="list">${at.map(a=>`<div class="row" data-a="goto" data-v="${a.k}" style="cursor:pointer"><span class="muted small" style="min-width:90px">${esc(dateShort(a.k))} ${a.k.slice(0,4)}</span><span class="nm small">${esc(a.w.ver||'full')} · ${{easy:'too easy',right:'just right',hard:'too hard'}[a.w.result.rating]||''}</span><span class="amt" style="min-width:0;font-size:20px">${esc(resultText(a.w))}${bb[a.w.ver||'']===a&&at.length>1?' ★':''}</span></div>`).join('')}</div></div>`:''}`;
+}
+function doSig(id,vi){
+ const sg=SIG_BY[id],k=TODAY(),d=getDay(k);if(!sg)return;
+ if(d.workout&&d.workout.result){S.flash='> Today already has a logged workout. Try again tomorrow.';render();scrollTo(0,0);return}
+ const w=buildSig(sg,vi,k,{again:true});S.sigView=null;S.tab='today';S.view=k;
+ undoable('Loaded '+w.name,()=>editDay(k,dd=>{dd.workout=w}));S.flash=`> ${w.name} is today's workout.`;render();scrollTo(0,0);setTimeout(showToast,0);
 }
 function vSetup(){
  const p=S.profile,EQ=[['db5','Dumbbells · 5 lb pair'],['db10','Dumbbells · 10 lb pair'],['kb25','Kettlebell · 25 lb'],['bar','Doorframe pull-up bar'],['couch','Couch (dips, split squats)'],['db35','Dumbbell · 35 lb'],['kb50','Kettlebell · 50 lb']];
@@ -1653,7 +1787,11 @@ const ACT={
  celeclose:()=>{const el=$('#cele');clearInterval(el._t);el.hidden=true},
  repseen:b=>{const v=b.dataset.v;editProfile(p=>{p.seenReports=[...new Set([...(p.seenReports||[]),v])].slice(-60)});render()},
  gotoboss:()=>{S.tab='hero';S.heroTab='boss';S.flash='';render();scrollTo(0,0)},
- htab:b=>{S.heroTab=b.dataset.v;S.histName=null;S.flash='';render();scrollTo(0,0)},
+ sigopen:b=>{S.sigView=b.dataset.v;S.sigVer=null;render();scrollTo(0,0)},
+ sigback:()=>{S.sigView=null;render();scrollTo(0,0)},
+ sigver:b=>{S.sigVer=+b.dataset.v;render()},
+ sigdo:b=>doSig(b.dataset.v,+b.dataset.p),
+ htab:b=>{S.heroTab=b.dataset.v;S.histName=null;S.sigView=null;S.flash='';render();scrollTo(0,0)},
  branch:b=>{S.branch=b.dataset.v;render()},
  claim:b=>{const id=b.dataset.v;const m=withXP(()=>editProfile(p=>{p.claims={...(p.claims||{}),[id]:TODAY()}}),{always:true});S.flash='> '+m.join('\n');render()},
  unclaim:b=>{const id=b.dataset.v;editProfile(p=>{const c={...(p.claims||{})};delete c[id];p.claims=c});S.flash='';render()},
@@ -1729,6 +1867,7 @@ function saveResult(){
  if(F.timer==='amrap'){const ro=$('#r-rounds')?.value,re=$('#r-reps')?.value;if(ro!=='')r.rounds=+ro;if(re)r.reps=+re}
  const fv=$('#r-fin')?.value,prevFin=w.fin?finBest(w.fin.id):null;if(w.fin&&fv)r.fin=Math.round(+fv);
  const first=!w.result;
+ const sigPrev=w.signature?bestOf(attemptsOf(w.name,k)):null,sigFirst=w.signature&&!attemptsOf(w.name,k).length;
  let xpm=[];
  xpm=withXP(()=>{
  r.prog=first?progress(w.items,rating,k,w):(w.result.prog||[]);
@@ -1737,7 +1876,9 @@ function saveResult(){
  if(first&&r.prog.length)editProfile(p=>{p.log=[...(p.log||[]),...r.prog.filter(m=>/▲|▼/.test(m)).map(m=>({k,m}))].slice(-200)});
  },{always:true,quiet:first});
  S.form=null;S.rating=null;S.pendingResult=null;
- const prMsg=r.fin!=null&&w.fin?(prevFin==null?`FIRST RECORD ${short(w.fin.n)}: ${r.fin}`:r.fin>prevFin.v?`NEW PR ${short(w.fin.n)}: ${r.fin} (was ${prevFin.v})`:''):'';
+ const sigMsg=!first||!w.signature||r.dnf?'':sigFirst?`BENCHMARK SET ${w.name}: ${resultText(w)}`:sigPrev&&scoreOf(w)>scoreOf(sigPrev.w)?`NEW PR ${w.name}: ${resultText(w)} (was ${resultText(sigPrev.w)})`:sigPrev?`${w.name}: ${resultText(w)} · best ${resultText(sigPrev.w)}`:'';
+ let prMsg=r.fin!=null&&w.fin?(prevFin==null?`FIRST RECORD ${short(w.fin.n)}: ${r.fin}`:r.fin>prevFin.v?`NEW PR ${short(w.fin.n)}: ${r.fin} (was ${prevFin.v})`:''):'';
+ if(sigMsg)prMsg=prMsg?sigMsg+'\n'+prMsg:sigMsg;
  if(first)setTimeout(()=>celebrateDone(w,r,xpm,prMsg),60);
  S.flash=first?`> ${w.name} logged.${prMsg?'\n'+prMsg:''}\n${xpm.join('\n')}${r.prog.length?'\n'+r.prog.join('\n'):''}`:'> Result updated.';
  render();scrollTo(0,0);
@@ -2106,7 +2247,8 @@ const LOOT=[
  {id:'cape',slot:'back',n:'Furnace cape',c:'var(--bad)',boss:'furnace'},
  {id:'wall',slot:'back',n:'Wall shield',c:'var(--dim)',boss:'pushups'},
  {id:'aura',slot:'fx',n:'Root aura',lv:20},
- {id:'glow',slot:'fx',n:'Phosphor glow',ach:'st100'}
+ {id:'glow',slot:'fx',n:'Phosphor glow',ach:'st100'},
+ {id:'glitch',slot:'fx',n:'Glitch',ach:'sig5'}
 ];
 const LOOT_BY=Object.fromEntries(LOOT.map(x=>[x.id,x]));
 const SLOTS=[['head','Head'],['crown','Crown'],['shirt','Shirt'],['wrist','Wrists'],['belt','Belt'],['shoes','Shoes'],['back','Back'],['fx','Effect']];
