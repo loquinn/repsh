@@ -347,7 +347,7 @@ pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:aut
 <div id="setupflow" hidden></div>
 
 <script>
-const BUILD='b92508692';
+const BUILD='b92513824';
 /* ============ helpers ============ */
 const $=(s,el=document)=>el.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -1306,7 +1306,7 @@ const BOSS_DUE=28;
 const bossFmt=(b,v)=>v==null?'—':b.unit==='time'?fmt(v):b.unit==='sec'?`${v}s`:`${v}`;
 function bossBest(id){const b=BOSSES.find(x=>x.id===id),a=(S.profile.bosses||{})[id]||[];if(!a.length)return null;return a.reduce((m,e)=>m==null?e.v:(b.lower?Math.min(m,e.v):Math.max(m,e.v)),null)}
 function bossLast(id){const a=(S.profile.bosses||{})[id]||[];return a.length?a[a.length-1]:null}
-function bossesDue(){const tw=new Set(testDue().map(b=>b.id));return BOSSES.filter(b=>{if(tw.has(b.id))return true;const l=bossLast(b.id);return !l||daysBetween(l.k,TODAY())>=BOSS_DUE})}
+function bossesDue(){const tw=new Set(testDue().map(b=>b.id)),as=S.profile.assessed,quiet=as&&as!=='skip'&&daysBetween(as,TODAY())<14;return BOSSES.filter(b=>{if(tw.has(b.id))return true;if(quiet)return false;const l=bossLast(b.id);return !l||daysBetween(l.k,TODAY())>=BOSS_DUE})}
 const TREE=[
  {id:'pull',n:'PULL',nodes:[
   {id:'pl1',n:'Dead hang 30s',r:{boss:'hang',v:30}},
@@ -1996,8 +1996,9 @@ function vHistory(){
  <div class="box"><div class="grid3"><div class="stat"><b>${streak()}</b><span>day streak</span></div><div class="stat"><b>${wk}</b><span>last 7 days</span></div><div class="stat"><b>${total}</b><span>sessions</span></div></div>
  <div class="hm" style="grid-auto-flow:row">${cells}</div>
  <div class="small muted">Columns are weeks, rows Sun→Sat. Orange = session done, striped = streak freeze used, grey = habits only.</div></div>`;
+ const NC={};for(const k of keys){const w=getDay(k).workout;if(w&&w.result)NC[w.name]=(NC[w.name]||0)+1}
  const rows=keys.filter(dayDone).map((k,ri)=>{const d=getDay(k),dt=parseKey(k);let what='',res='',srch='',act=`data-a="goto" data-v="${k}"`;
-  if(d.workout?.result){const w=d.workout,r=w.result,n=attemptsOf(w.name).length;what=`${w.name}${n>1?` ×${n}`:''} · ${fmtL(w)}`;res=resultText(w).replace(' rounds',' rds');srch=[w.name,w.title,fmtL(w),...w.items.map(i=>i.n)].join(' ');act=`data-a="histname" data-v="${esc(w.name)}"`}
+  if(d.workout?.result){const w=d.workout,r=w.result,n=NC[w.name]||1;what=`${w.name}${n>1?` ×${n}`:''} · ${fmtL(w)}`;res=resultText(w).replace(' rounds',' rds');srch=[w.name,w.title,fmtL(w),...w.items.map(i=>i.n)].join(' ');act=`data-a="histname" data-v="${esc(w.name)}"`}
   else if(d.run?.done){what=`Run · ${d.run.plan||''}`;res=d.run.dist?`${d.run.dist} mi${d.run.time?' · '+fmt(d.run.time):''}`:'done'}
   else if(d.mob?.done){what=`Mobility · ${d.mob.routine||''}`;res='done'}
   srch=(srch||what)+' '+k+' '+DOW[dt.getDay()]+' '+MON[dt.getMonth()];
@@ -2184,7 +2185,7 @@ const ACT={
  assesstimer:b=>assessTimer(b.dataset.v),
  assesslog:()=>assessLog(),
  assessskip:()=>{editProfile(p=>{p.assessed='skip'});S.flash='> Skipped. Your setup answers set your levels. Retake it any time from Hero → Bosses.';render()},
- assessretake:()=>{editProfile(p=>{delete p.assessed});S.tab='today';S.view=TODAY();render();setTimeout(()=>$('#assess')?.scrollIntoView({block:'start'}),50)},
+ assessretake:()=>{if(!confirm('Retake the assessment? Your new results replace your current level for every movement.'))return;editProfile(p=>{delete p.assessed});S.tab='today';S.view=TODAY();render();setTimeout(()=>$('#assess')?.scrollIntoView({block:'start'}),50)},
  bosstimer:b=>{const B=BOSSES.find(x=>x.id===b.dataset.v);openTimer({kind:'boss',boss:B,total:B.cd||0,label:B.n,rounds:0})},
  ban:b=>{undoable('Move hidden',()=>swapItem(+b.dataset.v,true))},
  unban:b=>{editProfile(p=>{p.ban=(p.ban||[]).filter(x=>x!==b.dataset.v)});render()},
@@ -2915,8 +2916,8 @@ function importBackup(file){
    if(!ids.length&&!j.profile)throw new Error('no days found in it');
    for(const id of ids){const d=j.days[id];d.date=id.slice(2);if(d.workout&&(!Array.isArray(d.workout.items)||!Object.hasOwn(FORMATS,d.workout.format)))delete d.workout;S.days[id]=d;save(id)}
    if(j.profile){S.profile=mergeProfile(j.profile);save('profile')}
-   clearGen();S.flash=`> Restored ${ids.length} days${j.profile?' and your profile':''} from ${file.name}.`;
-  }catch(err){S.flash=`> That file couldn't be restored: ${err.message}. Pick a .json backup exported from rep.sh.`}
+   clearGen();S.flash=`> Restored ${ids.length} day${ids.length===1?'':'s'}${j.profile?' and your profile':''} from ${file.name}.`;
+  }catch(err){S.flash=`> That file couldn't be restored: ${err instanceof SyntaxError?'it is not a valid backup file':err.message}. Pick a .json backup exported from rep.sh.`}
   render();scrollTo(0,0);
  };
  fr.onerror=()=>{S.flash='> Could not read that file.';render()};
