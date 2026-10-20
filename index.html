@@ -251,6 +251,7 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
 .slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
 .lootprev{display:flex;gap:14px;align-items:center}
+.assessrow .arow{display:flex;gap:8px;margin-top:8px;align-items:center}.assessrow .arow input{flex:1;min-width:0}
 .sigs{display:grid;gap:8px}.sigcard{display:grid;gap:3px;text-align:left;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--fg);font:inherit;cursor:pointer}.sigcard .sn{font:400 26px/1 var(--crt);color:var(--amber)}.sigcard .st{font-size:11px;letter-spacing:.04em;color:var(--dim);text-transform:uppercase}.sigcard .sb{font-size:12.5px}.sigcard.off{opacity:.45}
 .tag-btn{margin-left:auto;min-height:32px;padding:4px 10px;font-size:11.5px}
 .notes .more{margin-top:-4px}.notes .more .bossbar{margin-top:8px}
@@ -761,6 +762,8 @@ function rematchFor(k,type,loc,mins){
 const PLYO_CAP={new:80,back:80,trained:120};
 const HOLD_CAP={wall_hs:45};
 const NEG_IDS=new Set(['neg_pu','chin_neg']);
+// pull-up builders: not limited by how many pull-ups you can do
+const PULL_BUILD=new Set(['scap_pull']);
 const pullMax=()=>bossBest('pullups')??5;
 const contacts=it=>it.amt*(it.u==='side'?2:1);
 // which template slots a format uses: EMOM skips core, ladders never climb pull-ups
@@ -788,18 +791,19 @@ function capItem(it,f,{newbie,work}){
  if(it.u==='sec')it.amt=Math.min(it.amt,HOLD_CAP[it.id]||60);
  else if(f!=='chipper'&&!['cardio','sprint','burpee'].includes(it.pat))it.amt=Math.min(it.amt,it.u==='side'?15:25);
  if(f!=='ladder'&&f!=='chipper'&&MIN_SET[it.pat]&&!newbie){const mn=it.u==='sec'?20:it.u==='side'?Math.ceil(MIN_SET[it.pat]*.6):MIN_SET[it.pat];if(it.amt<mn)it.amt=mn}
- if(it.pat==='pull'&&it.u!=='sec')it.amt=NEG_IDS.has(it.id)?Math.min(it.amt,newbie?2:4):Math.min(it.amt,Math.max(1,Math.floor(pm*.6/(it.u==='side'?2:1))));
+ if(PULL_BUILD.has(it.id))it.amt=Math.min(Math.max(it.amt,6),12);
+ else if(it.pat==='pull'&&it.u!=='sec')it.amt=NEG_IDS.has(it.id)?Math.min(it.amt,newbie?2:4):Math.min(it.amt,Math.max(1,Math.floor(pm*.6/(it.u==='side'?2:1))));
 }
 function sessionCap(it,f,rounds,mins,n){
  if(f==='intervals')return;
  const pm=pullMax(),plyo=PLYO_CAP[S.profile.fitness]||100,reps=f==='fortime'?rounds:f==='emom'?Math.floor(mins/Math.max(1,n)):f==='amrap'?6:1;
  if(IMPACT.has(it.id)&&contacts(it)*reps>plyo)it.amt=Math.max(it.u==='side'?3:5,Math.floor(plyo/reps/(it.u==='side'?2:1)));
- if(it.pat==='pull'&&it.u!=='sec'&&!NEG_IDS.has(it.id)&&contacts(it)*reps>4*Math.max(pm,3))it.amt=Math.max(1,Math.floor(4*Math.max(pm,3)/reps/(it.u==='side'?2:1)));
+ if(it.pat==='pull'&&it.u!=='sec'&&!NEG_IDS.has(it.id)&&!PULL_BUILD.has(it.id)&&contacts(it)*reps>4*Math.max(pm,3))it.amt=Math.max(1,Math.floor(4*Math.max(pm,3)/reps/(it.u==='side'?2:1)));
 }
 function capItems(items,{f,mins,dl,newbie,work}){
  for(const it of items)capItem(it,f,{newbie,work});
  if(f==='chipper'&&items.length){const est=items.reduce((a,it)=>a+itemSecs(it),0)*1.15+items.length*8,sc=Math.min(1.6,Math.max(.7,mins*60*.8*dl/est));
-  items.forEach(it=>{it.amt=it.u==='sec'?Math.min(Math.round(it.amt*sc/5)*5,HOLD_CAP[it.id]||90):Math.min(it.u==='side'?30:it.pat==='cardio'?80:50,Math.max(1,Math.round(it.amt*sc)));if(it.pat==='sprint')it.amt=Math.min(it.amt,6)})}
+  items.forEach(it=>{it.amt=it.u==='sec'?Math.min(Math.round(it.amt*sc/5)*5,HOLD_CAP[it.id]||90):Math.min(it.u==='side'?30:it.pat==='cardio'?80:50,Math.max(1,Math.round(it.amt*sc)));if(it.pat==='sprint')it.amt=Math.min(it.amt,6);const e=exById(it.id);if(e&&it.u!=='sec'){const slow=/tempo|pause|\ds|squeeze|1¼/i.test(e.ex.n);it.amt=Math.min(it.amt,Math.round(e.ex.r*(slow?2:it.pat==='cardio'?4:it.u==='side'?2:3)))}})}
  let rounds=null;
  if(f==='fortime'){const per=items.reduce((a,it)=>a+itemSecs(it),0)*1.15+items.length*8;rounds=Math.max(2,Math.min(8,Math.round(mins*60*.85*dl/Math.max(per,30))))}
  if(f==='intervals')rounds=Math.max(1,Math.round(mins/5));
@@ -1059,6 +1063,7 @@ const BOSSES=[
  {id:'pushups',n:'THE WALL',test:'Max push-ups in one set, chest to fist height.',unit:'reps'},
  {id:'hang',n:'THE GRIP',test:'Longest dead hang from the bar.',unit:'sec',sw:true},
  {id:'plank',n:'THE SLAB',test:'Longest plank with good form.',unit:'sec',sw:true},
+ {id:'squats',n:'THE PISTON',test:'Max air squats in 60 seconds. Hips below knees, stand all the way up.',unit:'reps',cd:60},
  {id:'furnace',n:'THE FURNACE',test:'Burpees in 3 minutes. Chest to floor, jump at the top.',unit:'reps',cd:180},
  {id:'mile',n:'THE MILE',test:'1 mile for time on your street. Pick a measured loop.',unit:'time',sw:true,lower:true}
 ];
@@ -1391,9 +1396,10 @@ function vToday(){
  if(isToday&&window.REPSH_APP&&allDayKeys().length>=3&&(!S.profile.lastExport||daysBetween(S.profile.lastExport,TODAY())>=14))notes.push(`<button class="bossbar" data-a="export">⇩ Back up your log · last backup ${S.profile.lastExport?daysBetween(S.profile.lastExport,TODAY())+' days ago':'never'} ›</button>`);
  if(S.shareFallback)h+=`<div class="box"><textarea readonly id="share-out">${esc(S.shareFallback)}</textarea><button class="sm" data-a="sharedone">Done</button></div>`;
  if(S.flash)h+=`<div class="flash">${esc(S.flash)}</div>`;
- {const cal=isToday&&(computeHero().sessions>=2||S.profile.fitness==='trained')?calibPending():[];if(cal.length)notes.splice(notes.length&&/quest/.test(notes[0])?1:0,0,`<button class="bossbar" data-a="gotoboss">⚔ Calibrate: ${cal.length} quick test${cal.length>1?'s':''} set your starting levels ›</button>`);
+ {const cal=isToday&&!assessPending()&&(computeHero().sessions>=2||S.profile.fitness==='trained')?calibPending():[];if(cal.length)notes.splice(notes.length&&/quest/.test(notes[0])?1:0,0,`<button class="bossbar" data-a="gotoboss">⚔ Calibrate: ${cal.length} quick test${cal.length>1?'s':''} set your starting levels ›</button>`);
  const due=isToday&&!cal.length?bossesDue():[];if(due.length&&!(T.slots&&!(d.workout&&d.workout.result)))notes.push(`<button class="bossbar" data-a="gotoboss">⚔ ${due.length} boss fight${due.length>1?'s':''} ready${(S.profile.bosses&&Object.keys(S.profile.bosses).length)?'':' · set your baselines'} ›</button>`)}
  if(notes.length){h+=`<div class="notes">${notes[0]}${notes.length>1?`<details class="more"><summary class="small">+${notes.length-1} more</summary>${notes.slice(1).join('')}</details>`:''}</div>`}
+ if(isToday&&assessPending()&&!dayDone(k))h+=vAssess(k);
  if(T.slots||(d.workout&&(d.workout.shared||d.workout.again)))h+=vWorkout(k,d);
  else if(T.run)h+=vRun(k,d);
  else if(T.rest)h+=vRest(k,d);
@@ -1671,6 +1677,7 @@ function vBosses(){
  const due=bossesDue();
  let out=`<div class="prompt">$ <i>boss</i> --list</div>
  <div class="box"><div class="boxh"><h2>BOSS FIGHTS</h2><span class="tag ${due.length?'am':'ok'}">${due.length?due.length+' ready':'all fought'}</span></div>
+ <div class="btns"><button class="sm ghost" data-a="assessretake">↻ Retake the assessment</button></div>
  ${calibPending().length?`<div class="warnbox">Your first fight against each CALIBRATION boss sets where that ladder starts, so the workouts fit you from day one.</div>`:''}
  <div class="small muted">Max-effort tests every ${BOSS_DUE} days. Each fight is worth 75 XP, beating your record adds 100, and records unlock skills. Do them fresh, on a rest or mobility day.</div></div>`;
  for(const b of BOSSES){
@@ -1900,6 +1907,10 @@ const ACT={
   S.bossDraft=null;S.flash=`> ${B.n}: ${bossFmt(B,v)}. ${pr}\n${m.join('\n')}`;render();scrollTo(0,0)},
  tfintimer:()=>{const w=workoutFor(S.view);if(!w.tfin)return;if(S.form===S.view){const pr=S.pendingResult=S.pendingResult||{},v=id=>$('#'+id)?.value;const tm=parseTime(v('r-time'));if(tm!=null)pr.time=tm;if(v('r-rounds'))pr.rounds=+v('r-rounds');if(v('r-reps'))pr.reps=+v('r-reps');if(v('r-fin'))pr.fin=+v('r-fin');if(v('r-notes'))pr.notes=v('r-notes')}openTimer({kind:'boss',k:S.view,boss:{id:'tfin',n:'FINISHER',test:`${amtText(w.tfin.amt,w.tfin.u)} ${short(w.tfin.n)} for time`,unit:'time',sw:true},total:0,label:'FINISHER',rounds:0})},
  skilllog:b=>skillLog(b.dataset.v),
+ assesstimer:b=>assessTimer(b.dataset.v),
+ assesslog:()=>assessLog(),
+ assessskip:()=>{editProfile(p=>{p.assessed='skip'});S.flash='> Skipped. Your setup answers set your levels. Retake it any time from Hero → Bosses.';render()},
+ assessretake:()=>{editProfile(p=>{delete p.assessed});S.tab='today';S.view=TODAY();render();setTimeout(()=>$('#assess')?.scrollIntoView({block:'start'}),50)},
  bosstimer:b=>{const B=BOSSES.find(x=>x.id===b.dataset.v);openTimer({kind:'boss',boss:B,total:B.cd||0,label:B.n,rounds:0})},
  ban:b=>{undoable('Move hidden',()=>swapItem(+b.dataset.v,true))},
  unban:b=>{editProfile(p=>{p.ban=(p.ban||[]).filter(x=>x!==b.dataset.v)});render()},
@@ -2126,6 +2137,7 @@ function finishTimer(auto){
  const t=S.timer;if(!t)return;const el=Math.max(0,Math.round(elapsed()));
  if(t.kind==='boss'){
   const B=t.boss;closeTimer();
+  if(t.assess){(S.assessDraft=S.assessDraft||{})[B.id]=B.cd?String(t.rounds||0):B.unit==='time'?fmt(el):String(el);S.tab='today';S.view=t.k;render();setTimeout(()=>$('#as-'+B.id)?.scrollIntoView({block:'center'}),50);return}
   if(B.id==='tfin'){S.tfinDraft=fmt(el);S.tab='today';S.view=t.k;render();setTimeout(()=>$('#r-tfin')?.scrollIntoView({block:'center'}),50);return}
   S.bossDraft={id:B.id,v:B.cd?String(t.rounds||0):B.unit==='time'?fmt(el):String(el)};
   S.tab='hero';S.heroTab='boss';S.flash=`> ${B.n}: ${B.cd?(t.rounds||0)+' reps':B.unit==='time'?fmt(el):el+'s'}. Check it, then tap Log.`;render();
@@ -2232,8 +2244,66 @@ const CALIB={
  pushups:{pat:'push',map:v=>v<8?0:v<20?1:v<35?2:v<50?3:v<65?4:5},
  pullups:{pat:'pull',map:v=>v<3?0:v<5?1:v<9?2:v<13?3:S.profile.equip.db10?4:3},
  plank:{pat:'core',map:v=>v<45?4:v<90?7:v<150?10:12},
- furnace:{pat:'burpee',map:v=>v<25?0:v<45?1:v<60?2:3}
+ furnace:{pat:'burpee',map:v=>v<25?0:v<45?1:v<60?2:3},
+ squats:{pat:'squat',map:v=>v<25?0:v<35?1:v<45?2:v<55?3:4}
 };
+/* ============ assessment ============
+   Day-1 test session. Five max efforts set every movement's starting level and your fitness tier,
+   so the first real workout already fits you. */
+const ASSESS=[
+ {id:'pushups',rest:120,tip:'Max push-ups in one set. Chest to fist height, stop when your hips sag. Knee push-ups don\'t count, 0 is fine.'},
+ {id:'squats',rest:120,tip:'60 seconds. Hips below knees, stand all the way up. Tap +1 for each rep.'},
+ {id:'plank',rest:120,tip:'Hold until your hips drop or your back arches. Stop the clock then.'},
+ {id:'pullups',rest:180,tip:'Strict, from a full hang to chin over the bar. Can\'t do one yet? Enter 0 and the plan starts you on negatives and hangs.'},
+ {id:'furnace',rest:0,tip:'3 minutes of burpees. Pace it. This one sets your conditioning level.'}
+];
+// what each test says about the other patterns it predicts
+const CALIB_ALSO={
+ pushups:[['vpush',v=>v<10?0:v<25?1:v<40?2:3],['dip',v=>v<10?0:v<25?1:v<40?2:3]],
+ pullups:[['row',v=>v<1?0:v<5?1:v<9?2:3],['arms',v=>v<3?0:v<8?1:2]],
+ squats:[['lunge',v=>v<25?0:v<35?1:v<45?2:3],['hinge',v=>v<25?0:v<35?1:v<45?2:3]],
+ furnace:[['cardio',v=>v<25?8:v<40?11:v<55?13:15]]
+};
+const assessPending=()=>!S.profile.assessed;
+function assessTier(vals){
+ const pu=vals.pushups??0,sq=vals.squats??0,pl=vals.pullups??0,bu=vals.furnace??0;
+ const score=(pu>=30)+(pu>=15)+(sq>=40)+(sq>=28)+(pl>=8)+(pl>=3)+(bu>=45)+(bu>=30);
+ return score>=6?'trained':score>=3?'back':'new';
+}
+function vAssess(k){
+ const D=S.assessDraft||(S.assessDraft={});
+ return `<div class="box quest" id="assess"><div class="boxh"><h2>ASSESSMENT</h2><span class="tag am">day 1</span></div>
+ <div class="small">Five quick max tests, about 15 minutes with rests. Your results set the starting move and volume for every pattern, so the coach fits workouts to you instead of guessing. Warm up first. Skip any test you can't do.</div>
+ <div class="list">${ASSESS.map((a,i)=>{const B=BOSSES.find(b=>b.id===a.id);return `<div class="row assessrow"><span class="amt">${i+1}</span><span class="nm">${esc(B.n)}<small>${esc(a.tip)}${a.rest?` Rest ${a.rest/60} min after.`:''}</small>
+  <span class="arow"><input id="as-${a.id}" inputmode="numeric" placeholder="${B.unit==='time'?'mm:ss':B.unit==='sec'?'seconds':'reps'}" value="${esc(D[a.id]??'')}">${B.sw||B.cd?`<button class="sm" data-a="assesstimer" data-v="${a.id}">${B.cd?'▶ '+fmt(B.cd)+' timer':'▶ Stopwatch'}</button>`:''}</span></span></div>`}).join('')}</div>
+ <div class="btns"><button class="pri" data-a="assesslog">Save results + set my levels</button><button class="ghost sm" data-a="assessskip">Skip, use my setup answers</button></div></div>`;
+}
+function assessRead(){const D=S.assessDraft||(S.assessDraft={});for(const a of ASSESS){const el=$('#as-'+a.id);if(el)D[a.id]=el.value}return D}
+function assessLog(){
+ const D=assessRead(),vals={};
+ for(const a of ASSESS){const B=BOSSES.find(b=>b.id===a.id),raw=D[a.id];if(raw==null||String(raw).trim()==='')continue;const v=B.unit==='time'?parseTime(raw):Math.round(+raw);if(v==null||isNaN(v)||v<0)continue;vals[a.id]=v}
+ if(!Object.keys(vals).length){S.flash='> Enter at least one result, or tap Skip.';render();return}
+ const tier=assessTier(vals),lines=[];
+ const m=withXP(()=>{
+  editProfile(p=>{
+   p.fitness=tier;p.calib={};const F=FIT_LEVELS[tier];
+   for(const pat in PAT)p.levels[pat]={i:F.l?F.l[pat]??START_LEVELS[pat]:START_LEVELS[pat],v:F.v};
+   p.bosses={...(p.bosses||{})};for(const id in vals)p.bosses[id]=[...(p.bosses[id]||[]).filter(e=>e.k!==TODAY()),{k:TODAY(),v:vals[id]}];
+   for(const id in vals){const C=CALIB[id];if(C){const P=PAT[C.pat];p.levels[C.pat]={i:Math.max(0,Math.min(P.ladder.length-1,C.map(vals[id]))),v:1};p.calib[id]=TODAY()}
+    for(const [pat,fn] of CALIB_ALSO[id]||[])p.levels[pat]={i:Math.max(0,Math.min(PAT[pat].ladder.length-1,fn(vals[id]))),v:1}}
+   p.assessed=TODAY();delete p.skill;
+  });
+  editProfile(p=>{p.base=ALL_NODES.filter(n=>n.r.lad&&nodeMet(n)).map(n=>n.id)});
+ });
+ for(const pat of ['push','pull','squat','hinge','core']){const ex=exerciseFor(pat,null,S.profile.levels[pat],'home');if(ex)lines.push(`${PAT[pat].label}: ${ex.n.split(' · ')[0]}`)}
+ S.assessDraft=null;S.flash=`> Assessment saved. Level: ${FITNESS.find(f=>f[0]===tier)[1].toLowerCase()}.\n> Starting moves · ${lines.join(' · ')}\n${m.join('\n')}`;
+ render();scrollTo(0,0);
+}
+function assessTimer(id){
+ assessRead();const B=BOSSES.find(b=>b.id===id);
+ openTimer({kind:'boss',boss:B,total:B.cd||0,label:B.n,rounds:0,assess:true,k:S.view});
+}
+
 const calibPending=()=>Object.keys(CALIB).filter(id=>!(S.profile.calib||{})[id]&&!((S.profile.bosses||{})[id]||[]).length);
 // first fight of a calibration boss sets that pattern's starting level; skills that unlocks pay no XP
 function calibrate(id,v){
@@ -2503,7 +2573,7 @@ function freshStart(){
  }
  editProfile(p=>{
   p.start=TODAY();
-  for(const k of ['log','bosses','calib','seenReports','planHist','lastExport'])delete p[k];
+  for(const k of ['log','bosses','calib','seenReports','planHist','lastExport','assessed','skill'])delete p[k];
   if(p.hero)p.hero.created=TODAY();
  });
  editProfile(p=>{p.base=ALL_NODES.filter(nd=>nd.r.lad&&nodeMet(nd)).map(nd=>nd.id)});
