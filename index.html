@@ -1148,7 +1148,7 @@ function computeHero(){
  return HERO=h;
 }
 // run an edit and report XP, level-ups and unlocks it caused
-function withXP(fn,{always=false}={}){
+function withXP(fn,{always=false,quiet=false}={}){
  const a=computeHero(),before={xp:a.xp,L:a.L,ach:new Set(a.ach),sk:new Set(a.skills)};
  fn();clearGen();const b=computeHero(),msgs=[];
  const gain=b.xp-before.xp;
@@ -1156,7 +1156,7 @@ function withXP(fn,{always=false}={}){
  if(b.L>before.L)msgs.push(`LEVEL UP → ${b.L} · ${b.title}`);
  for(const id of b.skills)if(!before.sk.has(id)&&!(S.profile.base||[]).includes(id)){const N=ALL_NODES.find(x=>x.id===id);msgs.push(`SKILL UNLOCKED ${N.n} (+${100*N.tier} XP)`)}
  for(const id of b.ach)if(!before.ach.has(id)){const A=ACH.find(x=>x.id===id);msgs.push(`UNLOCKED ${A.n} (+${A.xp} XP)`)}
- if(msgs.some(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED/.test(m)))setTimeout(()=>celebrate(msgs),80);
+ if(!quiet&&msgs.some(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED/.test(m)))setTimeout(()=>celebrate(msgs),80);
  return msgs;
 }
 function streak(){return computeHero().streak}
@@ -1658,7 +1658,7 @@ const ACT={
  tip:b=>{const r=document.getElementById(b.dataset.c);if(r)r.textContent=b.dataset.v;b.closest('svg')?.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')}
 };
 document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse')return;const b=e.target.closest('[data-a="tip"]');if(b)ACT.tip(b)});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const f=ACT[b.dataset.a];if(f){e.preventDefault?.();f(b)}});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const f=ACT[b.dataset.a];if(f){e.preventDefault?.();if(HAPTIC_ACTS.has(b.dataset.a))haptic();f(b)}});
 document.addEventListener('input',e=>{
  if(e.target.id==='libq'){S.libQ=e.target.value;const q=S.libQ.trim().toLowerCase();let n=0;document.querySelectorAll('.mvrow').forEach(r=>{const on=!q||r.dataset.s.includes(q);r.hidden=!on;if(on)n++});const t=$('#libn');if(t)t.textContent=n+' moves'}
  if(e.target.id==='histq'){const q=e.target.value.trim().toLowerCase();let i=0;document.querySelectorAll('.hrow').forEach(r=>{const on=q?r.dataset.s.includes(q):i<30;i++;r.hidden=!on})}
@@ -1719,9 +1719,10 @@ function saveResult(){
  w.result=r;
  editDay(k,d=>{d.workout=w});
  if(first&&r.prog.length)editProfile(p=>{p.log=[...(p.log||[]),...r.prog.filter(m=>/▲|▼/.test(m)).map(m=>({k,m}))].slice(-200)});
- },{always:true});
+ },{always:true,quiet:first});
  S.form=null;S.rating=null;S.pendingResult=null;
  const prMsg=r.fin!=null&&w.fin?(prevFin==null?`FIRST RECORD ${short(w.fin.n)}: ${r.fin}`:r.fin>prevFin.v?`NEW PR ${short(w.fin.n)}: ${r.fin} (was ${prevFin.v})`:''):'';
+ if(first)setTimeout(()=>celebrateDone(w,r,xpm,prMsg),60);
  S.flash=first?`> ${w.name} logged.${prMsg?'\n'+prMsg:''}\n${xpm.join('\n')}${r.prog.length?'\n'+r.prog.join('\n'):''}`:'> Result updated.';
  render();scrollTo(0,0);
 }
@@ -1729,7 +1730,12 @@ function saveResult(){
 /* ============ timer + workout player ============ */
 let AC=null,wake=null,tickId=null;
 const short=n=>n.split(' · ')[0];
-function beep(f=880,d=.12){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.value=.06;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}try{navigator.vibrate&&navigator.vibrate(d>.2?300:80)}catch(e){}}
+function beep(f=880,d=.12){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;g.gain.value=.06;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}haptic(d>.2?2:1)}
+// iPhones ignore navigator.vibrate; Safari 18+ ticks the Taptic Engine when a switch toggles
+let HAPT=null;function haptic(n=1){try{if(navigator.vibrate&&!/iP(hone|ad)/.test(navigator.userAgent)){navigator.vibrate(n>1?[40,60,40]:30);return}
+ if(!HAPT){HAPT=document.createElement('label');HAPT.setAttribute('aria-hidden','true');HAPT.style.cssText='position:fixed;left:-200px;top:0;opacity:0;pointer-events:none';HAPT.innerHTML='<input type="checkbox" switch tabindex="-1">';document.body.appendChild(HAPT)}
+ for(let i=0;i<n;i++)setTimeout(()=>HAPT.click(),i*120)}catch(e){}}
+const HAPTIC_ACTS=new Set(['bump','mark','markrun','markmob','rate','saveresult','start','seq','tdone','tm','food','lvl','freshstart'])
 async function lockScreen(){try{wake=await navigator.wakeLock?.request('screen')}catch(e){wake=null}}
 // voice cues (iPhone speaks only after a tap, so the Start tap unlocks it)
 const voiceOn=()=>S.profile.voice!==false&&!S.muted&&('speechSynthesis' in window);
@@ -1986,6 +1992,27 @@ function calibrate(id,v){
 }
 
 /* ============ celebrations ============ */
+// full-screen terminal readout after logging a workout; folds in any level-ups it caused
+function celebrateDone(w,r,xpm,prMsg){
+ const h=computeHero(),lv=xpm.find(m=>/^LEVEL UP/.test(m)),big=xpm.filter(m=>/^SKILL UNLOCKED|^UNLOCKED/.test(m));
+ const gain=(xpm.find(m=>/^\+\d+ XP/.test(m))||'').replace(/ XP/,'');
+ const res=r.time!=null?fmt(r.time):r.rounds!=null?`${r.rounds}${r.reps?'+'+r.reps:''} ${w.format==='ladder'?'rungs':'rounds'}`:'complete';
+ const felt={easy:'too easy',right:'just right',hard:'too hard'}[r.rating];
+ const reps=w.items.reduce((a,it)=>a+estReps(w,it),0);
+ const lines=[`$ ./log --workout ${w.name.toLowerCase()}`,`[${'#'.repeat(20)}] 100%`,`> result ...... ${res}${r.dnf?' (unfinished)':''}`,reps?`> reps ........ ${reps}`:'',`> felt ........ ${felt}`,gain?`> xp .......... ${gain}`:'',`> streak ...... ${h.streak} day${h.streak===1?'':'s'}`,prMsg?'> '+prMsg.toLowerCase():'',lv?'> '+lv.toLowerCase():'',...big.map(m=>'> '+m.replace(/^UNLOCKED /,'achievement ').toLowerCase())].filter(Boolean);
+ const el=$('#cele');
+ el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(110,S.profile.hero||{},h.L,{pose:'flex'})}</div><pre class="cbanner">${lv?`LEVEL ${h.L}`:'COMPLETE'}</pre><div class="ctitle">${lv?esc(h.title):esc(w.title.toLowerCase())}</div><pre class="clines"></pre><div class="small muted">tap anywhere to continue</div></div>`;
+ el.hidden=false;haptic(2);
+ const pre=el.querySelector('.clines'),txt=lines.join('\n');
+ beep(523,.08);setTimeout(()=>beep(659,.08),110);setTimeout(()=>beep(784,.18),220);
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches){pre.textContent=txt;return}
+ // the progress bar fills first, then the readout types out
+ const bar=lines[1],head=lines[0]+'\n';let f=0,i=0;clearInterval(el._t);
+ el._t=setInterval(()=>{
+  if(f<=20){pre.textContent=head+`[${'#'.repeat(f)}${'.'.repeat(20-f)}] ${f*5}%`;f++;return}
+  i+=2;const rest=lines.slice(2).join('\n');pre.textContent=head+bar+'\n'+rest.slice(0,i)+(i<rest.length?'█':'');if(i>=rest.length)clearInterval(el._t);
+ },22);
+}
 function celebrate(msgs){
  const big=msgs.filter(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED/.test(m));
  if(!big.length)return;
