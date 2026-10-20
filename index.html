@@ -252,6 +252,8 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
 .slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
 .lootprev{display:flex;gap:14px;align-items:center}
+.lvlline{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 170px)}
+.htabs{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
 #upd{position:fixed;left:16px;right:16px;top:calc(10px + env(safe-area-inset-top,0px));z-index:70;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 14px;background:var(--panel);border:1px solid var(--accent);border-radius:4px;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.4)}
 .pxdemo{image-rendering:pixelated;display:block}
 @keyframes demofr2{0%{opacity:1}50.000%,100%{opacity:0}}@keyframes demofr4{0%{opacity:1}25.000%,100%{opacity:0}}@keyframes demofr6{0%{opacity:1}16.667%,100%{opacity:0}}@keyframes demofr8{0%{opacity:1}12.500%,100%{opacity:0}}@keyframes demofr10{0%{opacity:1}10.000%,100%{opacity:0}}
@@ -329,7 +331,7 @@ pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:aut
       <svg width="34" height="22" viewBox="0 0 17 11" aria-hidden="true" shape-rendering="crispEdges">
         <g fill="var(--accent)"><rect x="0" y="2" width="2" height="7"/><rect x="2" y="0" width="3" height="11"/><rect x="5" y="4" width="7" height="3"/><rect x="12" y="0" width="3" height="11"/><rect x="15" y="2" width="2" height="7"/></g>
       </svg>
-      <div><b>rep.sh</b><br><small id="lvl">lvl 1 · guest</small></div>
+      <div><b>rep.sh</b><br><small id="lvl" class="lvlline">lvl 1 · guest</small></div>
     </div>
     <span id="hav" class="hav"></span><div class="status" id="status"><span class="dot warn"></span>booting<span class="cursor"></span></div>
   </header>
@@ -345,7 +347,7 @@ pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:aut
 <div id="setupflow" hidden></div>
 
 <script>
-const BUILD='b92508445';
+const BUILD='b92508692';
 /* ============ helpers ============ */
 const $=(s,el=document)=>el.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -1062,7 +1064,7 @@ function jPhase(k){
 }
 function phaseLabel(k){
  const J=jFor(k),wi=weekIndex(k)%6;
- const t=J?`${J.n.toLowerCase()} · wk ${jWeek(k)}/${J.weeks} · ${jPhase(k)}`:`week ${wi+1} of 6 · ${wi===5?'deload':wi>=3?'push':'build'} · pick a journey ›`;
+ const t=J?`${J.n.toLowerCase()} · wk ${jWeek(k)}/${J.weeks} · ${jPhase(k)}`:`wk ${wi+1}/6 · ${wi===5?'deload':wi>=3?'push':'build'} · journeys ›`;
  return `<button class="phase lnk" data-a="plan">${esc(t)}</button>`;
 }
 // in a test week, a boss counts as due until you fight it that week
@@ -1949,7 +1951,7 @@ function vBosses(){
   <div class="grid3"><div class="stat"><b>${bossFmt(b,best)}</b><span>record</span></div><div class="stat"><b>${last?bossFmt(b,last.v):'—'}</b><span>last</span></div><div class="stat"><b>${hist.length}</b><span>fights</span></div></div>
   ${hist.length>1?sparkline(hist.map(e=>[e.k,b.lower?-e.v:e.v]),360,60):''}
   <div class="bossin"><input id="boss-${b.id}" ${b.unit==='time'?'inputmode="numeric" placeholder="mm:ss"':'type="number" inputmode="numeric" placeholder="'+(b.unit==='sec'?'seconds':'reps')+'"'} value="${esc(draft)}" aria-label="${esc(b.n)} result">
-  ${b.sw||b.cd?`<button class="sm" data-a="bosstimer" data-v="${b.id}">▶ ${b.cd?'3:00 timer':'Stopwatch'}</button>`:''}<button class="sm pri" data-a="bosslog" data-v="${b.id}">Log</button></div></div>`;
+  ${b.sw||b.cd?`<button class="sm" data-a="bosstimer" data-v="${b.id}">▶ ${b.cd?fmt(b.cd)+' timer':'Stopwatch'}</button>`:''}<button class="sm pri" data-a="bosslog" data-v="${b.id}">Log</button></div></div>`;
  }
  return out;
 }
@@ -2063,6 +2065,7 @@ function vSetup(){
  const p=S.profile,EQ=[['db5','Dumbbells · 5 lb pair'],['db10','Dumbbells · 10 lb pair'],['kb25','Kettlebell · 25 lb'],['bar','Doorframe pull-up bar'],['couch','Couch (dips, split squats)'],['db35','Dumbbell · 35 lb'],['kb50','Kettlebell · 50 lb']];
  return `<div class="prompt">$ <i>rep</i> config</div>
  <div class="box"><div class="lvlrow">${avatarSVG(72,p.hero||{},computeHero().L)}<div class="lvlinfo"><div class="t">${esc(heroName()||'No hero yet')}</div><div class="small muted">${p.goal?esc(GOALS.find(g=>g[0]===p.goal)[1]):''}${p.lowImpact?' · low impact':''}</div></div><button class="sm" data-a="edithero">Edit hero</button></div></div>
+ <div class="box"><div class="boxh"><h2>JOURNEY</h2><span class="tag ${jCur()?'a':''}">${jCur()?esc(JOURNEYS[jCur().id].n.toLowerCase()):'free training'}</span></div><div class="small muted">${jCur()?`Week ${Math.min(jWeek(TODAY()),JOURNEYS[jCur().id].weeks)} of ${JOURNEYS[jCur().id].weeks}. See the week ahead, your test results, or switch programs.`:'Structured 6 and 12-week programs with test weeks and a Hell Week finale.'}</div><div class="btns"><button data-a="plan">${jCur()?'Open journey ›':'Browse journeys ›'}</button></div></div>
  <div class="box"><div class="boxh"><h2>DAILY TARGETS</h2></div>
  <div class="grid3"><label>Protein g<input data-p="goals.protein" type="number" inputmode="numeric" value="${p.goals.protein}"></label><label>Water oz<input data-p="goals.water" type="number" inputmode="numeric" value="${p.goals.water}"></label><label>Walk min<input data-p="goals.walk" type="number" inputmode="numeric" value="${p.goals.walk}"></label></div></div>
  <div class="box"><div class="boxh"><h2>DEFAULTS</h2></div><div class="small muted">What a training day starts with. You can still switch it on the Today tab.</div>
@@ -2781,16 +2784,16 @@ function vSetupFlow(){
  const o=S.ob,step=OB_STEPS[o.i],pct=Math.round(o.i/(OB_STEPS.length-1)*100);
  let body='';
  if(step==='name')body=`<div class="obh">$ ./setup --new-hero</div><h2 class="obt">Name your hero</h2><div class="small muted">Shows in the header and on level-ups. A nickname works.</div>
-  <input id="ob-name" maxlength="20" placeholder="Logan" value="${esc(o.name)}" autocomplete="off" aria-label="Hero name">`;
+  <input id="ob-name" maxlength="20" placeholder="Your name or a nickname" value="${esc(o.name)}" autocomplete="off" aria-label="Hero name">`;
  if(step==='look')body=`<div class="obh">$ ./setup --character</div><h2 class="obt">Pick your character</h2>
   <div class="oblook">${['m','f'].map(x=>`<button class="obcard ${o.sex===x?'on':''}" data-a="ob" data-f="sex" data-v="${x}">${avatarSVG(110,{...o,sex:x})}<span>${x==='m'?'Male':'Female'}</span></button>`).join('')}</div>
   <div class="obrow"><span class="small muted">Skin</span><div class="sw">${SKINS.map((c,i)=>`<button class="swatch ${o.skin===i?'on':''}" style="background:${c}" data-a="ob" data-f="skin" data-v="${i}" aria-label="Skin tone ${i+1}"></button>`).join('')}</div></div>
   <div class="obrow"><span class="small muted">Hair</span><div class="sw">${HAIRS.map((c,i)=>`<button class="swatch ${o.hair===i?'on':''}" style="background:${c}" data-a="ob" data-f="hair" data-v="${i}" aria-label="Hair color ${i+1}"></button>`).join('')}</div></div>
-  <div class="small muted">Your character picks up gear as you level: a headband at 5, wristbands and a belt at 12, a crown at 20.</div>`;
+  <div class="small muted">Your hero earns gear from levels, achievements and boss fights, and their build changes as you get stronger.</div>`;
  if(step==='goal')body=`<div class="obh">$ ./setup --goal</div><h2 class="obt">Main goal</h2>${GOALS.map(([id,n,d])=>`<button class="obopt ${o.goal===id?'on':''}" data-a="ob" data-f="goal" data-v="${id}"><b>${n}</b><span>${d}</span></button>`).join('')}`;
  if(step==='level')body=`<div class="obh">$ ./setup --level</div><h2 class="obt">Where are you starting?</h2>${FITNESS.map(([id,n,d])=>`<button class="obopt ${o.fitness===id?'on':''}" data-a="ob" data-f="fitness" data-v="${id}"><b>${n}</b><span>${d}</span></button>`).join('')}
   <label class="toggle"><span>Low-impact mode<br><small class="muted">No jumping or burpees. Joint-friendly swaps, walks instead of runs.</small></span><input type="checkbox" data-ob="lowImpact" ${o.lowImpact?'checked':''}></label>
-  <div class="small muted">Your first boss fights fine-tune this automatically.</div>`;
+  <div class="small muted">Right after setup, a 15-minute assessment sets your exact starting level for every movement.</div>`;
  if(step==='equip'){const EQ=[['db5','Dumbbells · 5 lb pair'],['db10','Dumbbells · 10 lb pair'],['kb25','Kettlebell · 25 lb'],['bar','Pull-up bar'],['couch','Couch or sturdy bench'],['db35','Dumbbell · 35 lb'],['kb50','Kettlebell · 50 lb']];
   body=`<div class="obh">$ ./setup --equipment</div><h2 class="obt">What do you have?</h2><div class="small muted">Workouts only use what you tick. Nothing is fine too.</div>${EQ.map(([id,l])=>`<label class="toggle"><span>${l}</span><input type="checkbox" data-obeq="${id}" ${o.equip[id]?'checked':''}></label>`).join('')}`}
  if(step==='sched')body=`<div class="obh">$ ./setup --schedule</div><h2 class="obt">Your week</h2>
@@ -2842,7 +2845,7 @@ function finishSetup(){
  if(fresh)editProfile(p=>{p.base=ALL_NODES.filter(n=>n.r.lad&&nodeMet(n)).map(n=>n.id)});
  if(+o.weight)editDay(TODAY(),d=>{if(!d.weight)d.weight=+o.weight});
  S.ob=null;drawSetup();document.body.style.overflow='';S.tab='today';S.view=TODAY();render();
- const el=$('#cele');el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(150,S.profile.hero,1)}</div><pre class="cbanner">HERO ONLINE</pre><div class="ctitle">${esc(heroName()||'hero')}</div><pre class="clines">$ ./setup --done\n> profile written\n> ${esc(planSummary(planOf(S.profile)))} · ${LOCS[S.profile.loc].toLowerCase()} · ${S.profile.mins} min\n> next: your first workout. Boss fights to fine-tune your levels show up after 2 sessions</pre><div class="small muted">tap anywhere to continue</div></div>`;el.hidden=false;
+ const el=$('#cele');el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(150,S.profile.hero,1)}</div><pre class="cbanner">HERO ONLINE</pre><div class="ctitle">${esc(heroName()||'hero')}</div><pre class="clines">$ ./setup --done\n> profile written\n> ${esc(planSummary(planOf(S.profile)))} · ${LOCS[S.profile.loc].toLowerCase()} · ${S.profile.mins} min\n> next: the 15-minute assessment on Today, then your first workout\n> tip: tap \'journeys\' at the top of Today for a 6 or 12-week program</pre><div class="small muted">tap anywhere to continue</div></div>`;el.hidden=false;
  beep(523,.08);setTimeout(()=>beep(784,.18),140);
 }
 
