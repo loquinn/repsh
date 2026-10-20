@@ -251,6 +251,7 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
 .slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
 .lootprev{display:flex;gap:14px;align-items:center}
+.coach{font-size:12px;color:var(--dim);display:grid;gap:3px;border-left:2px solid var(--amber);padding-left:8px}
 .phase.lnk{margin:-8px -8px 0 0;padding:8px;min-height:0;color:var(--amber);font-size:11px;text-decoration:underline dotted;text-underline-offset:3px;white-space:normal;text-align:right;max-width:62%}
 .jtl{display:flex;gap:3px;margin:4px 0}.jc{flex:1;display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:3px;padding:3px 0;font-size:10px;color:var(--dim)}.jc b{font:400 16px/1 var(--crt)}.jc i{font-style:normal}.jc.past{background:var(--panel2);color:var(--fg)}.jc.now{border-color:var(--accent);color:var(--accent)}.jc.mH i,.jc.mT i{color:var(--amber)}
 .planday{display:flex;width:100%;text-align:left;background:none;border:0;border-top:1px dashed var(--line);color:var(--fg);font:inherit;padding:9px 0;gap:10px;align-items:center;cursor:pointer}.planday:first-child{border-top:0}.planday .pdd{min-width:44px;font-size:11px;color:var(--dim);display:flex;flex-direction:column}.planday .pdd b{font:400 20px/1 var(--crt);color:var(--fg)}.planday.now .pdd b{color:var(--accent)}.planday .nm{flex:1}
@@ -1547,7 +1548,7 @@ function vWorkout(k,d){
  h+=`<div class="box ${done?'':'hot'}">
   <div class="boxh"><h2>${esc(w.title)}</h2><span class="tag a">${fmtL(w)}</span></div>
   <div class="code">${esc(w.name)}</div>
-  ${w.signature&&!done?sigCoachLine(w,k):''}
+  ${w.signature&&!done?sigCoachLine(w,k):''}${!done&&!w.signature?(()=>{const n=coachNotes(k,w);return n.length?`<div class="coach">${n.map(x=>`<div>&gt; ${esc(x)}</div>`).join('')}</div>`:''})():''}
   ${done||w.shared||w.again?'':(()=>{const L=dayLoc(k),M=dayMins(k);return `<div class="switch"><div class="seg" role="group" aria-label="Where">${Object.entries(LOCS).map(([id,l])=>`<button class="sm ${L===id?'on':''}" data-a="setloc" data-v="${id}">${l}</button>`).join('')}</div><div class="seg" role="group" aria-label="Minutes">${[10,20,30].map(x=>`<button class="sm ${M===x?'on':''}" data-a="setmins" data-v="${x}">${x}m</button>`).join('')}</div></div>`})()}
   ${(()=>{const at=attemptsOf(w.name,k,w.sig).filter(a=>a.k<k||!done);if(!at.length)return w.rematch&&!done?`<div class="small" style="color:var(--amber)">REMATCH · same workout as ${esc(dateShort(w.rematch.k))}. Beat ${esc(w.rematch.v)}.</div>`:'';const b=bestOf(at),l=at[0];
    return `<div class="small" style="color:var(--amber)">${w.rematch&&!done?'REMATCH · ':''}Last ${esc(dateShort(l.k))}: ${esc(resultText(l.w))}${b&&b!==l?` · best ${esc(resultText(b.w))}`:''} · <button class="lnk" data-a="histname" data-v="${esc(w.name)}">history ›</button></div>`})()}
@@ -1571,6 +1572,25 @@ function vWorkout(k,d){
  h+=`<div class="box"><details ${done&&!d.cool?'open':''}><summary><span>Cool-down · ${Math.round(seqSecs(cool)/60)} min</span><span class="tag ${d.cool?'ok':''}" style="margin-left:auto">${d.cool?'done':'stretch'}</span></summary>
   ${seqList(cool)}<div class="btns" style="margin-top:10px"><button data-a="seq" data-v="cool">▶ Guided cool-down</button><button class="ghost ${d.cool?'on':''}" data-a="mark" data-v="cool">${d.cool?'✓ Done':'Mark done'}</button></div></details></div>`;
  return h;
+}
+// a trainer's one-liners: why today looks the way it does
+const FMT_WHY={fortime:'For Time: the same work every round, so chase a faster finish.',amrap:'AMRAP: more rounds in the same time is more conditioning.',emom:'EMOM: the built-in rest keeps every set crisp. Good for strength.',intervals:'Intervals: work by the clock, no counting. Great for conditioning.',ladder:'Ladder: reps climb every rung. Quality first, stop before form breaks.',chipper:'Chipper: one long pass. Break big sets up early, not late.'};
+function coachNotes(k,w){
+ if(w.signature||w.shared||w.again)return [];
+ const out=[],L=S.profile.levels,J=jFor(k),pats=[...new Set(w.items.map(i=>i.pat))].filter(p=>PAT[p]);
+ if(w.deload)out.push('Deload week: about 25% less volume so joints and muscles catch up. Levels hold this week.');
+ if(w.recovery)out.push('Recovery mode from your check-in: about 20% less volume today. Showing up still counts.');
+ const ups=(S.profile.log||[]).filter(e=>/^▲/.test(e.m)&&e.k<k&&daysBetween(e.k,k)<=10&&pats.some(p=>e.m.includes(PAT[p].label)));
+ if(ups.length)out.push(`New level: ${ups.map(e=>e.m.replace(/^▲ /,'').replace(': level up → ',' → ')).join(', ')}. It should feel harder, that is the point.`);
+ let prev=null;for(let i=1;i<=14&&!prev;i++){const pk=addDays(k,-i),pw=getDay(pk).workout;if(pw&&pw.result&&pw.type===w.type&&!pw.signature)prev={k:pk,w:pw}}
+ if(prev&&!w.deload){const r=prev.w.result.rating;if(r==='hard')out.push(`Your last ${w.title.toLowerCase()} felt too hard, so volume came down about 10%.`);else if(r==='easy')out.push(`Your last ${w.title.toLowerCase()} felt too easy, so volume went up about 8%.`)}
+ const up=(J&&J.lvlAt)||1.3,near=pats.filter(p=>!['cardio','burpee','sprint','core'].includes(p)&&(L[p]||{v:1}).v>=up-.08&&(L[p]||{}).i<PAT[p].ladder.length-1);
+ if(near.length&&out.length<3)out.push(`${near.map(p=>PAT[p].label).join(' and ')} ${near.length>1?'are':'is'} close to the next level. Rate this one honestly.`);
+ if(out.length<3)out.push(FMT_WHY[w.format]+(J?` Picked for ${J.n.toLowerCase()}.`:''));
+ const big=pats.find(p=>LOWER_PATS.has(p))?'legs':pats.find(p=>['pull','row'].includes(p))?'back':pats.find(p=>['push','vpush','dip'].includes(p))?'chest and shoulders':null;
+ if(big&&out.length<3){const grp=big==='legs'?LOWER_PATS:big==='back'?new Set(['pull','row']):new Set(['push','vpush','dip']);let last=null;for(let i=1;i<=7&&!last;i++){const pk=addDays(k,-i),pw=getDay(pk).workout;if(pw&&pw.result&&pw.items.some(it=>grp.has(it.pat)))last=i}
+  if(last)out.push(last>=6?`Your ${big} haven't been trained in ${last} days, so today's session matters.`:`Your ${big} last trained ${last===1?'yesterday':last+' days ago'}${last>=2?', recovered and ready':''}.`)}
+ return out.slice(0,3);
 }
 function sigCoachLine(w,k){
  const sg=SIG_BY[w.signature];if(!sg)return '';const V=sigVersions(sg),vi=V.findIndex(v=>v.label===w.ver),at=sigAttempts(sg.id,k);
@@ -2015,6 +2035,7 @@ const ACT={
   S.bossDraft=null;S.flash=`> ${B.n}: ${bossFmt(B,v)}. ${pr}\n${m.join('\n')}`;render();scrollTo(0,0)},
  tfintimer:()=>{const w=workoutFor(S.view);if(!w.tfin)return;if(S.form===S.view){const pr=S.pendingResult=S.pendingResult||{},v=id=>$('#'+id)?.value;const tm=parseTime(v('r-time'));if(tm!=null)pr.time=tm;if(v('r-rounds'))pr.rounds=+v('r-rounds');if(v('r-reps'))pr.reps=+v('r-reps');if(v('r-fin'))pr.fin=+v('r-fin');if(v('r-notes'))pr.notes=v('r-notes')}openTimer({kind:'boss',k:S.view,boss:{id:'tfin',n:'FINISHER',test:`${amtText(w.tfin.amt,w.tfin.u)} ${short(w.tfin.n)} for time`,unit:'time',sw:true},total:0,label:'FINISHER',rounds:0})},
  skilllog:b=>skillLog(b.dataset.v),
+ weekfeel:b=>{const v=b.dataset.v,mon=b.dataset.p,d=v==='easy'?.05:v==='hard'?-.08:0;editProfile(p=>{p.weekFeel={...(p.weekFeel||{}),[mon]:v};p.seenReports=[...new Set([...(p.seenReports||[]),mon])].slice(-60);if(d)for(const pat in p.levels){const L=p.levels[pat];L.v=Math.round(Math.min(1.5,Math.max(.6,L.v+d))*100)/100}});S.flash=v==='easy'?'> Noted. Every pattern gets about 5% more volume next week.':v==='hard'?'> Noted. Every pattern drops about 8% in volume next week. Sleep and protein matter as much as the workouts.':'> Noted. Keeping the current pace.';render();scrollTo(0,0)},
  plan:()=>{S.tab='plan';S.planWk=0;S.flash='';render();scrollTo(0,0)},
  planwk:b=>{S.planWk=+b.dataset.v;render()},
  jstart:b=>jStart(b.dataset.v),
@@ -2491,7 +2512,7 @@ function reportHTML(r,dismiss){
  <div class="row"><span class="nm">Streak at week end</span><span>${r.streak} days</span></div>
  ${r.prs.length?`<div class="row"><span class="nm">New records</span><span>${esc(r.prs.join(', '))}</span></div>`:''}
  ${r.ups.length?`<div class="row"><span class="nm">Level-ups</span><span>${esc(r.ups.join(', '))}</span></div>`:''}
- </div>${dismiss?`<button class="sm" data-a="repseen" data-v="${r.mon}">Got it</button>`:''}</div>`;
+ </div>${dismiss&&!(S.profile.weekFeel||{})[r.mon]?`<div class="small muted">How did the week feel overall? The coach adjusts next week's volume.</div><div class="grid3">${[['easy','Too easy'],['right','Just right'],['hard','Too hard']].map(([v,l])=>`<button class="sm" data-a="weekfeel" data-v="${v}" data-p="${r.mon}">${l}</button>`).join('')}</div>`:dismiss?`<button class="sm" data-a="repseen" data-v="${r.mon}">Got it</button>`:''}</div>`;
 }
 function pendingReport(){
  const last=addDays(monOf(TODAY()),-7);
