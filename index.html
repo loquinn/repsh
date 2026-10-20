@@ -119,6 +119,7 @@ nav.tabs button.on{color:var(--accent)}
 #tmr .clock.rest{color:var(--ok);text-shadow:0 0 18px rgba(134,201,143,.3)}
 #tmr .now{text-align:center;font:400 30px/1.1 var(--crt);color:var(--amber);min-height:34px}
 #tmr .sub{text-align:center;color:var(--dim);font-size:13px;min-height:20px}
+#tmr .stage{flex-shrink:0}#tmr .stdemo{margin-bottom:-4px}
 #tmr .body{flex:1;overflow:auto;min-height:0}
 #tmr .counter{display:flex;align-items:center;justify-content:center;gap:16px}
 #tmr .counter b{font:400 56px/1 var(--crt);min-width:70px;text-align:center}
@@ -251,6 +252,14 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
 .slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
 .lootprev{display:flex;gap:14px;align-items:center}
+.pxdemo{image-rendering:pixelated;display:block}
+@keyframes demofr2{0%{opacity:1}50.000%,100%{opacity:0}}@keyframes demofr4{0%{opacity:1}25.000%,100%{opacity:0}}@keyframes demofr6{0%{opacity:1}16.667%,100%{opacity:0}}@keyframes demofr8{0%{opacity:1}12.500%,100%{opacity:0}}@keyframes demofr10{0%{opacity:1}10.000%,100%{opacity:0}}
+.pxdemo.anim g{opacity:0;animation-timing-function:steps(1,end)}
+@media (prefers-reduced-motion:reduce){.pxdemo.anim g{animation:none!important;opacity:0}.pxdemo.anim g:first-child{opacity:1}}
+.demobox{display:flex;justify-content:center;background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:10px 0}
+.stdemo{display:flex;justify-content:center;opacity:.95}
+.demosheet a.btn{text-decoration:none;display:flex;align-items:center;justify-content:center}
+.lnk.demo{color:var(--accent);padding:4px 6px;margin:-4px 0;min-height:0;font-size:12px}
 .coach{font-size:12px;color:var(--dim);display:grid;gap:3px;border-left:2px solid var(--amber);padding-left:8px}
 .phase.lnk{margin:-8px -8px 0 0;padding:8px;min-height:0;color:var(--amber);font-size:11px;text-decoration:underline dotted;text-underline-offset:3px;white-space:normal;text-align:right;max-width:62%}
 .jtl{display:flex;gap:3px;margin:4px 0}.jc{flex:1;display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:3px;padding:3px 0;font-size:10px;color:var(--dim)}.jc b{font:400 16px/1 var(--crt)}.jc i{font-style:normal}.jc.past{background:var(--panel2);color:var(--fg)}.jc.now{border-color:var(--accent);color:var(--accent)}.jc.mH i,.jc.mT i{color:var(--amber)}
@@ -992,7 +1001,7 @@ function vSkill(k,d){
  const must=(jFor(k)||{}).skillFirst;
  return `<div class="box"><details ${must&&!done?'open':''}><summary><span>Skill · ${esc(T.n.toLowerCase())} · step ${s.i+1}/${s.n}</span><span class="tag ${done?'ok':must?'a':''}" style="margin-left:auto">${done?(d.skill.res==='clean'?'clean':'logged'):must?'part of the plan':'optional'}</span></summary>
  <div class="small muted">Technique while you are fresh, before the workout. Goal: ${esc(T.goal)}. Two clean sessions on a step unlock the next one${st.c?` (1 of 2 done)`:''}.</div>
- <div class="list"><div class="row"><span class="amt">3×${amtText(s.amt,s.e.u)}</span><span class="nm">${esc(s.e.n)}<small>${esc(s.e.c||'')} Rest ${s.rest}s between sets. Stop the set if form slips.</small></span><span class="pat">SKILL</span></div></div>
+ <div class="list"><div class="row"><span class="amt">3×${amtText(s.amt,s.e.u)}</span><span class="nm">${esc(s.e.n)}<small>${esc(s.e.c||'')} Rest ${s.rest}s between sets. Stop the set if form slips. <button class="lnk demo" data-a="demo" data-v="${esc(s.id)}">▶ demo</button></small></span><span class="pat">SKILL</span></div></div>
  ${done?`<div class="small muted">Logged: ${d.skill.res==='clean'?'all sets clean':'struggled'}${d.skill.msg?' · '+esc(d.skill.msg):''}</div>`:`<div class="btns"><button data-a="seq" data-v="skill">▶ Guided sets</button><button class="ghost" data-a="skilllog" data-v="clean">✓ All clean</button><button class="ghost" data-a="skilllog" data-v="hard">Struggled</button></div>`}
  </details></div>`;
 }
@@ -1109,6 +1118,123 @@ function jEnd(){
 }
 // hell week: all training days of the journey's final week done
 function hellDone(e){const J=JOURNEYS[e.id];if(!J||!J.hell)return false;const s=addDays(monOf(e.start),(J.weeks-1)*7);const days=Array.from({length:7},(_,i)=>addDays(s,i)).filter(k=>TEMPLATES[typeOf(k)].slots);return days.length>0&&days.every(dayDone)}
+/* ============ pixel demos ============
+   A side-view stick rig (facing right) drawn onto a 24x22 pixel grid. Each move maps to a movement
+   family of key poses; in-between frames are interpolated, so every exercise gets a looping demo.
+   Joints: h head, n neck/shoulders, p hip, e/a near elbow/hand, E/A far elbow/hand, k/f near knee/foot, K/F far. */
+const DW=24,DH=22;
+const POSE={
+ stand:{h:[12,5],n:[12,8],p:[12,14],e:[12,11],a:[12,14],k:[12,17],f:[12,20]},
+ standArmsFwd:{h:[12,5],n:[12,8],p:[12,14],e:[15,9],a:[18,9],k:[12,17],f:[12,20]},
+ squat:{h:[12,7],n:[11,10],p:[8,16],e:[14,11],a:[17,11],k:[14,16],f:[13,20]},
+ gobletUp:{h:[12,5],n:[12,8],p:[12,14],e:[14,11],a:[14,9],k:[12,17],f:[12,20]},
+ gobletDn:{h:[12,7],n:[11,10],p:[8,16],e:[13,14],a:[14,12],k:[14,16],f:[13,20]},
+ lungeDn:{h:[11,6],n:[11,9],p:[11,15],e:[11,12],a:[11,15],k:[15,16],f:[15,20],K:[8,19],F:[5,20]},
+ hingeDn:{h:[18,11],n:[15,11],p:[8,13],e:[15,14],a:[15,17],k:[9,17],f:[9,20]},
+ swingDn:{h:[18,12],n:[15,12],p:[8,13],e:[13,15],a:[10,17],k:[10,17],f:[9,20]},
+ swingUp:{h:[12,5],n:[12,8],p:[12,14],e:[15,9],a:[18,9],k:[12,17],f:[12,20]},
+ bridgeDn:{h:[3,19],n:[6,20],p:[11,20],e:[9,20],a:[11,20],k:[15,16],f:[17,20]},
+ bridgeUp:{h:[3,19],n:[6,20],p:[11,16],e:[9,20],a:[11,20],k:[15,15],f:[17,20]},
+ plankHi:{h:[20,13],n:[17,14],p:[9,16],e:[17,17],a:[17,20],k:[5,18],f:[2,19]},
+ plankLo:{h:[20,17],n:[17,18],p:[9,19],e:[14,17],a:[17,20],k:[5,19],f:[2,20]},
+ pikeUp:{h:[17,15],n:[15,14],p:[10,9],e:[16,17],a:[16,20],k:[7,15],f:[5,20]},
+ pikeDn:{h:[17,18],n:[15,17],p:[10,10],e:[13,17],a:[16,20],k:[7,15],f:[5,20]},
+ hstand:{h:[17,16],n:[18,14],p:[18,8],e:[18,17],a:[18,20],k:[18,5],f:[18,1]},
+ hang:{h:[13,8],n:[12,7],p:[12,13],e:[12,4],a:[12,1],k:[12,16],f:[10,19]},
+ pullTop:{h:[13,2],n:[12,4],p:[12,9],e:[15,4],a:[12,1],k:[12,12],f:[10,15]},
+ hkrUp:{h:[13,8],n:[12,7],p:[12,13],e:[12,4],a:[12,1],k:[16,12],f:[16,16]},
+ rowDn:{h:[18,11],n:[15,11],p:[8,13],e:[15,14],a:[15,17],k:[9,17],f:[9,20]},
+ rowUp:{h:[18,11],n:[15,11],p:[8,13],e:[11,9],a:[13,12],k:[9,17],f:[9,20]},
+ pressDn:{h:[12,5],n:[12,8],p:[12,14],e:[14,10],a:[14,8],k:[12,17],f:[12,20]},
+ pressUp:{h:[12,5],n:[12,8],p:[12,14],e:[13,4],a:[13,1],k:[12,17],f:[12,20]},
+ curlDn:{h:[12,5],n:[12,8],p:[12,14],e:[12,11],a:[13,14],k:[12,17],f:[12,20]},
+ curlUp:{h:[12,5],n:[12,8],p:[12,14],e:[12,11],a:[15,9],k:[12,17],f:[12,20]},
+ dipUp:{h:[11,6],n:[10,9],p:[11,15],e:[9,12],a:[9,14],k:[16,15],f:[17,20]},
+ dipDn:{h:[11,9],n:[10,12],p:[11,18],e:[7,12],a:[9,14],k:[16,16],f:[17,20]},
+ lie:{h:[3,19],n:[6,20],p:[12,20],e:[8,19],a:[7,18],k:[15,16],f:[18,20]},
+ crunch:{h:[6,14],n:[8,16],p:[12,20],e:[10,17],a:[9,15],k:[15,16],f:[18,20]},
+ lieFlat:{h:[3,19],n:[5,20],p:[11,20],e:[8,20],a:[11,20],k:[15,20],f:[19,20]},
+ legsUp:{h:[3,19],n:[5,20],p:[11,20],e:[8,20],a:[11,20],k:[13,16],f:[13,12]},
+ lieReach:{h:[5,19],n:[7,20],p:[12,20],e:[4,19],a:[1,19],k:[16,20],f:[20,20]},
+ vup:{h:[7,12],n:[8,15],p:[11,20],e:[12,12],a:[15,10],k:[14,15],f:[16,11]},
+ hollow:{h:[4,17],n:[7,18],p:[11,20],e:[4,16],a:[1,16],k:[15,19],f:[19,18]},
+ forearm:{h:[20,15],n:[17,16],p:[9,17],e:[17,20],a:[20,20],k:[5,18],f:[2,19]},
+ mcA:{h:[20,13],n:[17,14],p:[9,16],e:[17,17],a:[17,20],k:[13,17],f:[12,19],K:[5,18],F:[2,19]},
+ mcB:{h:[20,13],n:[17,14],p:[9,16],e:[17,17],a:[17,20],k:[5,18],f:[2,19],K:[13,17],F:[12,19]},
+ crouch:{h:[16,11],n:[13,12],p:[9,15],e:[15,17],a:[15,20],k:[14,15],f:[12,20]},
+ air:{h:[12,2],n:[12,5],p:[12,11],e:[14,3],a:[15,0],E:[10,3],A:[9,0],k:[12,14],f:[11,17]},
+ jackOut:{h:[12,5],n:[12,8],p:[12,14],e:[14,6],a:[15,3],E:[10,6],A:[9,3],k:[14,17],f:[15,20],K:[10,17],F:[9,20]},
+ runA:{h:[13,5],n:[13,8],p:[12,14],e:[15,10],a:[17,9],E:[10,11],A:[9,13],k:[16,14],f:[15,18],K:[11,17],F:[9,20]},
+ runB:{h:[13,5],n:[13,8],p:[12,14],e:[10,11],a:[9,13],E:[15,10],A:[17,9],k:[11,17],f:[9,20],K:[16,14],F:[15,18]},
+ stepA:{h:[12,5],n:[12,8],p:[12,14],e:[12,11],a:[12,14],k:[16,13],f:[16,15],K:[12,17],F:[12,20]},
+ stepB:{h:[16,0],n:[16,3],p:[16,9],e:[16,6],a:[16,9],k:[16,12],f:[16,15],K:[16,12],F:[16,15]},
+ quad:{h:[19,13],n:[16,15],p:[9,15],e:[16,17],a:[16,20],k:[9,19],f:[4,20]},
+ quadReach:{h:[19,13],n:[16,15],p:[9,15],e:[19,14],a:[22,14],E:[16,17],A:[16,20],k:[9,19],f:[4,20],K:[5,14],F:[1,14]},
+ dbA:{h:[4,19],n:[6,20],p:[12,20],e:[7,17],a:[7,14],k:[13,16],f:[16,16]},
+ dbB:{h:[4,19],n:[6,20],p:[12,20],e:[4,18],a:[1,18],E:[7,17],A:[7,14],k:[16,19],f:[20,19],K:[13,16],F:[16,16]},
+ proneDn:{h:[19,19],n:[16,20],p:[9,20],e:[19,20],a:[22,20],k:[5,20],f:[1,20]},
+ proneUp:{h:[19,17],n:[16,18],p:[9,20],e:[19,17],a:[22,16],k:[5,19],f:[1,18]},
+ fold:{h:[16,16],n:[14,14],p:[10,10],e:[15,17],a:[16,20],k:[10,15],f:[10,20]},
+ wallsit:{h:[9,7],n:[9,10],p:[9,15],e:[9,13],a:[9,16],k:[14,15],f:[14,20]}
+};
+// families: key poses (looped), props they show, and whether a hold stays still
+const FAM={
+ pushup:{k:['plankHi','plankLo']},pike:{k:['pikeUp','pikeDn']},handstand:{k:['hstand'],props:['wall']},
+ squat:{k:['stand','squat']},goblet:{k:['gobletUp','gobletDn']},wallsit:{k:['wallsit'],props:['wall']},lunge:{k:['stand','lungeDn']},
+ hinge:{k:['stand','hingeDn']},swing:{k:['swingDn','swingUp']},bridge:{k:['bridgeDn','bridgeUp']},
+ pullup:{k:['hang','pullTop'],props:['bar']},hang:{k:['hang'],props:['bar']},hkr:{k:['hang','hkrUp'],props:['bar']},
+ row:{k:['rowDn','rowUp']},press:{k:['pressDn','pressUp']},curl:{k:['curlDn','curlUp']},dip:{k:['dipUp','dipDn'],props:['couch']},
+ crunch:{k:['lie','crunch']},legraise:{k:['lieFlat','legsUp']},vup:{k:['lieReach','vup']},hollow:{k:['hollow']},
+ plank:{k:['forearm']},mclimb:{k:['mcA','mcB']},burpee:{k:['stand','crouch','plankHi','crouch','air']},
+ jump:{k:['squat','air']},jack:{k:['stand','jackOut']},run:{k:['runA','runB']},stepup:{k:['stepA','stepB'],props:['box']},
+ birddog:{k:['quad','quadReach']},deadbug:{k:['dbA','dbB']},superman:{k:['proneDn','proneUp']},inchworm:{k:['stand','fold','plankHi','fold']}
+};
+const FAM_RULES=[
+ [/burpee|squat thrust/,'burpee'],[/inchworm/,'inchworm'],[/mountain climber|plank jack/,'mclimb'],[/jumping jack|step jack|squat jack/,'jack'],
+ [/toes-to-bar|hanging (knee|leg) raise/,'hkr'],[/scap pull|dead hang|flexed-arm|hold at 90|chin-up hold/,'hang'],[/pull-up|chin-up|commando/,'pullup'],
+ [/lying leg raise|flutter/,'legraise'],[/v-up|hollow rock/,'vup'],[/hollow/,'hollow'],[/crunch|sit-up|heel tap|russian|windmill/,'crunch'],
+ [/dead bug/,'deadbug'],[/bird dog/,'birddog'],[/superman|snow angel|y-t-w|prone/,'superman'],[/plank|bear/,'plank'],
+ [/handstand|wall walk/,'handstand'],[/pike/,'pike'],[/push-up|floor press/,'pushup'],[/dip/,'dip'],
+ [/swing|clean|high pull/,'swing'],[/row|renegade|reverse fly/,'row'],[/press|lateral raise|halo/,'press'],[/curl|extension|kickback|skull/,'curl'],
+ [/deadlift|rdl|good morning|nordic/,'hinge'],[/bridge|hip thrust/,'bridge'],[/step-up/,'stepup'],[/wall sit/,'wallsit'],
+ [/jump squat|tuck jump|broad jump|skater|180|bound/,'jump'],[/goblet|front-rack|sumo/,'goblet'],[/lunge|split squat|curtsy/,'lunge'],
+ [/squat|pistol|cossack/,'squat'],[/knees|march|fast feet|run|sprint|shuffle|shadow|rope|cross crunch|carry|walk|crawl|shuttle/,'run']
+];
+const FAM_BY_PAT={push:'pushup',vpush:'press',dip:'dip',pull:'pullup',row:'row',arms:'curl',squat:'squat',lunge:'lunge',hinge:'hinge',core:'crunch',burpee:'burpee',cardio:'run',sprint:'run'};
+function demoFam(ex,pat){const n=(ex.n||'').toLowerCase();for(const [re,f] of FAM_RULES)if(re.test(n))return f;return FAM_BY_PAT[pat]||'squat'}
+const lerpPose=(A,B,t)=>{const o={};for(const j of ['h','n','p','e','a','E','A','k','f','K','F']){const a=A[j]||A[j.toLowerCase()],b=B[j]||B[j.toLowerCase()];o[j]=[Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t)]}return o};
+function rasterPose(P,props,gear,col){
+ const g=Array.from({length:DH},()=>Array(DW).fill(null));
+ const put=(x,y,c)=>{if(x>=0&&x<DW&&y>=0&&y<DH)g[y][x]=c};
+ const line=([x0,y0],[x1,y1],c,w=2)=>{const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let err=dx-dy,x=x0,y=y0;for(;;){for(let i=0;i<w;i++)for(let j=0;j<w;j++)put(x+i-(w>2?1:0),y+j-(w>2?1:0),c);if(x===x1&&y===y1)break;const e2=2*err;if(e2>-dy){err-=dy;x+=sx}if(e2<dx){err+=dx;y+=sy}}};
+ if(props.includes('bar'))for(let x=5;x<20;x++)put(x,1,'X');
+ if(props.includes('wall'))for(let y=0;y<DH;y++){put(21,y,'X');put(22,y,'X')}
+ if(props.includes('couch'))for(let y=15;y<DH;y++)for(let x=1;x<9;x++)put(x,y,y===15?'X':'Y');
+ if(props.includes('box'))for(let y=17;y<DH;y++)for(let x=14;x<21;x++)put(x,y,y===17?'X':'Y');
+ const P0=Object.fromEntries(Object.entries(P).map(([k,v])=>[k,v]));
+ const E=P0.E||P0.e,A=P0.A||P0.a,K=P0.K||P0.k,F=P0.F||P0.f;
+ // far limbs first, then torso, near limbs, head
+ line(P0.p,K,'q');line(K,F,'q');put(F[0]+2,F[1]+1,'b');
+ line(P0.n,E,'s2');line(E,A,'s2');
+ line(P0.n,P0.p,'T',3);
+ line(P0.p,P0.k,'P');line(P0.k,P0.f,'P');put(P0.f[0]+2,P0.f[1]+1,'B');put(P0.f[0]+1,P0.f[1]+1,'B');
+ line(P0.n,P0.e,'S');line(P0.e,P0.a,'S');
+ const [hx,hy]=P0.h;for(let y=-1;y<=1;y++)for(let x=-1;x<=1;x++)put(hx+x,hy+y,'S');put(hx,hy-2,'H');put(hx-1,hy-2,'H');put(hx+1,hy-2,'H');put(hx-2,hy-1,'H');put(hx+1,hy,'E');
+ if(gear==='kb'){const[ax,ay]=P0.a;for(const[dx,dy] of [[0,2],[1,2],[0,3],[1,3],[-1,3],[2,3]])put(ax+dx,ay+dy,'K')}
+ if(gear==='db'){const[ax,ay]=P0.a;for(const dx of [-1,0,1,2])put(ax+dx,ay+1,'D');put(ax-1,ay,'D');put(ax+2,ay,'D')}
+ const out=[];for(let y=0;y<DH;y++){let x=0;while(x<DW){const c=g[y][x];if(!c){x++;continue}let w=1;while(x+w<DW&&g[y][x+w]===c)w++;out.push(`<rect x="${x}" y="${y}" width="${w}" height="1" fill="${col[c]}"${c==='q'||c==='s2'?' opacity=".55"':''}/>`);x+=w}}
+ return out.join('');
+}
+function demoFrames(fam){const F=FAM[fam]||FAM.squat,K=F.k.map(k=>POSE[k]);if(K.length===1)return [K[0]];const out=[];for(let i=0;i<K.length;i++){const a=K[i],b=K[(i+1)%K.length];out.push(a,lerpPose(a,b,.5))}return out}
+function demoSVG(id,px=168){
+ const x=exById(id),ex=x?x.ex:SKILLX[id]||{n:id},pat=x?x.pat:'core',fam=demoFam(ex,pat),F=FAM[fam]||{},o=S.profile.hero||{};
+ const q=ex.q||[],gear=q.some(e=>/^kb/.test(e))?'kb':q.some(e=>/^db/.test(e))?'db':null;
+ const props=[...(F.props||[]),...(q.includes('bar')&&!(F.props||[]).includes('bar')&&['pullup','hang','hkr'].includes(fam)?['bar']:[])];
+ const col={S:SKINS[o.skin??1],s2:SKINS[o.skin??1],H:HAIRS[o.hair??0],E:'#1a1410',T:'var(--accent)',P:'#4a4f5c',q:'#4a4f5c',B:'#e9e2d4',b:'#e9e2d4',X:'var(--dim)',Y:'var(--line)',K:'#9aa0aa',D:'#9aa0aa'};
+ const fr=demoFrames(fam),n=fr.length,dur=n*.32;
+ const g=fr.map((P,i)=>`<g${n>1?` style="animation:demofr${n} ${dur}s steps(1) ${(-dur+i*dur/n).toFixed(2)}s infinite"`:''}>${rasterPose(P,props,gear,col)}</g>`).join('');
+ return `<svg class="pxdemo ${n>1?'anim n'+n:''}" viewBox="0 0 ${DW} ${DH}" width="${px}" height="${Math.round(px*DH/DW)}" shape-rendering="crispEdges" aria-hidden="true">${g}</svg>`;
+}
 function workoutFor(k){const d=getDay(k);return d.workout||generate(k,d.reroll||0)}
 const WALKS=[
  {name:'BRISK WALK',desc:'5 min easy, 20 min at a pace where talking takes effort, 5 min easy.',steps:[['Easy walk',300],['Brisk walk',1200],['Easy walk',300]]},
@@ -1284,7 +1410,7 @@ function vMoves(){
   const pr=finBest(e.id),n=timesDone(e.id),isF=fav.includes(e.id),isB=ban.includes(e.id);
   return `<div class="mvrow ${isB?'hid':''}" data-s="${esc(e.n.toLowerCase())}" ${q&&!e.n.toLowerCase().includes(q)?'hidden':''}><button class="favb ${isF?'on':''}" data-a="fav" data-v="${e.id}" aria-label="${isF?'Remove favorite':'Add favorite'}">${isF?'★':'☆'}</button>
   <div class="nm">${esc(e.n)}<small>${esc(P.label)} · ${lvl}${n?` · done ${n}×`:''}${pr?` · PR ${pr.v}`:''}${miss.length?` · needs ${esc(miss.join(', '))}`:''}${e.env?' · outside':''}${S.profile.lowImpact&&(IMPACT.has(e.id)||LOWX.has(e.id))?' · not low-impact':''}</small>
-  <small class="muted">${esc(e.c||'')} <a class="demo" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(e.n)+' exercise form')}" target="_blank" rel="noopener">demo ↗</a>${isB?` <button class="lnk" data-a="unban" data-v="${e.id}">unhide</button>`:''}</small></div></div>`}).join('');
+  <small class="muted">${esc(e.c||'')} <button class="lnk demo" data-a="demo" data-v="${esc(e.id)}">▶ demo</button>${isB?` <button class="lnk" data-a="unban" data-v="${e.id}">unhide</button>`:''}</small></div></div>`}).join('');
  return `<div class="prompt">$ <i>moves</i> --list ${g}</div>
  <div class="box"><div class="boxh"><h2>MOVE LIBRARY</h2><span class="tag" id="libn">${shown} moves</span></div>
  <div class="small muted">Star the moves you like and the generator picks them more often. Hidden moves never show up.</div>
@@ -1555,7 +1681,7 @@ function vWorkout(k,d){
   <div class="chipsrow"><span class="tag">~${estimateMins(w)} min</span><span class="tag" aria-label="Difficulty ${difficulty(w)} of 5">${dots(difficulty(w))}</span>${d.checkin?`<span class="tag ${w.recovery?'am':'ok'}">ready ${d.checkin.score.toFixed(1)}</span>`:''}</div>
   <div class="muted small">${esc(fmtD(w))}${w.deload?' <span style="color:var(--amber)">Deload week: volume at 75%.</span>':''}</div>
   ${w.shared?'<div class="small" style="color:var(--amber)">Shared workout from a code. Swap any move you can\'t do.</div>':''}${w.recovery?'<div class="warnbox">Recovery mode: about 20% less volume today, from your check-in.</div>':''}
-  <div class="list">${w.items.map((it,i)=>`<div class="row"><span class="amt">${w.format==='ladder'?'+'+amtText(it.amt,it.u):w.format==='emom'?'M'+(i+1):amtText(it.amt,it.u)}</span><span class="nm">${w.format==='emom'?amtText(it.amt,it.u)+' · ':''}${esc(it.n)}<small>${esc(it.c||'')} <a class="demo" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(it.n)+' exercise form')}" target="_blank" rel="noopener">demo ↗</a>${done||w.signature?'':` <button class="lnk" data-a="swap" data-v="${i}">⇄ swap</button> <button class="lnk" data-a="ban" data-v="${i}">⊘ hide</button>`}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}${w.fin?`<div class="row fin"><span class="amt">MAX</span><span class="nm">Finisher · ${esc(w.fin.n)}<small>${w.fin.u==='sec'?'One max hold':'One set of max reps'} after the workout. Stop one rep before your form breaks.${(()=>{const b=finBest(w.fin.id);return b?` Record: ${b.v}.`:''})()}</small></span><span class="pat">PR</span></div>`:''}${w.tfin?`<div class="row fin"><span class="amt">${amtText(w.tfin.amt,w.tfin.u)}</span><span class="nm">Finisher · ${esc(short(w.tfin.n))} for time<small>After the workout, rest 2 minutes, then go as fast as clean reps allow.${(()=>{const b=tfinBest(w.tfin,k);return b?` Record: ${fmt(b.v)}.`:' First attempt sets your record.'})()}</small></span><span class="pat">TIME</span></div>`:''}</div>`;
+  <div class="list">${w.items.map((it,i)=>`<div class="row"><span class="amt">${w.format==='ladder'?'+'+amtText(it.amt,it.u):w.format==='emom'?'M'+(i+1):amtText(it.amt,it.u)}</span><span class="nm">${w.format==='emom'?amtText(it.amt,it.u)+' · ':''}${esc(it.n)}<small>${esc(it.c||'')} <button class="lnk demo" data-a="demo" data-v="${esc(it.id)}">▶ demo</button>${done||w.signature?'':` <button class="lnk" data-a="swap" data-v="${i}">⇄ swap</button> <button class="lnk" data-a="ban" data-v="${i}">⊘ hide</button>`}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}${w.fin?`<div class="row fin"><span class="amt">MAX</span><span class="nm">Finisher · ${esc(w.fin.n)}<small>${w.fin.u==='sec'?'One max hold':'One set of max reps'} after the workout. Stop one rep before your form breaks.${(()=>{const b=finBest(w.fin.id);return b?` Record: ${b.v}.`:''})()}</small></span><span class="pat">PR</span></div>`:''}${w.tfin?`<div class="row fin"><span class="amt">${amtText(w.tfin.amt,w.tfin.u)}</span><span class="nm">Finisher · ${esc(short(w.tfin.n))} for time<small>After the workout, rest 2 minutes, then go as fast as clean reps allow.${(()=>{const b=tfinBest(w.tfin,k);return b?` Record: ${fmt(b.v)}.`:' First attempt sets your record.'})()}</small></span><span class="pat">TIME</span></div>`:''}</div>`;
  if(done){
   const r=w.result;
   h+=`<div class="grid3"><div class="stat"><b>${r.time!=null?fmt(r.time):(r.rounds!=null?r.rounds+(r.reps?'+'+r.reps:''):'✓')}</b><span>${r.time!=null?'time':r.rounds!=null?(w.format==='ladder'?'rungs':'rounds'):'complete'}</span></div><div class="stat"><b>${{easy:'EZ',right:'OK',hard:'HARD'}[r.rating]||'—'}</b><span>felt</span></div><div class="stat"><b>${(r.prog||[]).length}</b><span>adjustments</span></div></div>
@@ -2012,6 +2138,7 @@ const ACT={
  ci:b=>{S.ci={...(S.ci||{sleep:3,sore:3,energy:3}),[b.dataset.f]:+b.dataset.v};$('#sheet').innerHTML=vSheet()},
  cisave:()=>saveCheckin(),
  sheetclose:()=>{S.sheet=null;$('#sheet').innerHTML=''},
+ demo:b=>{S.demoId=b.dataset.v;S.sheet='demo';$('#sheet').innerHTML=vSheet()},
  celeclose:()=>{const el=$('#cele');clearInterval(el._t);el.hidden=true},
  repseen:b=>{const v=b.dataset.v;editProfile(p=>{p.seenReports=[...new Set([...(p.seenReports||[]),v])].slice(-60)});render()},
  gotoboss:()=>{S.tab='hero';S.heroTab='boss';S.flash='';render();scrollTo(0,0)},
@@ -2173,7 +2300,7 @@ function openTimer(t){
 }
 function elapsed(){const t=S.timer;return t.acc+(t.run?(Date.now()-t.t0)/1000:0)}
 function closeTimer(){clearInterval(tickId);S.timer=null;$('#tmr').hidden=true;document.body.style.overflow='';try{wake&&wake.release()}catch(e){}wake=null;try{speechSynthesis.cancel()}catch(e){}}
-function stageHTML(big,name,cue,next){return `<div class="big">${esc(big)}</div><div class="mv">${esc(name)}</div>${cue?`<div class="cue">${esc(cue)}</div>`:''}${next?`<div class="nx">next › ${esc(next)}</div>`:''}`}
+function stageHTML(big,name,cue,next,id){return `${id&&(exById(id)||SKILLX[id])?`<div class="stdemo">${demoSVG(id,104)}</div>`:''}<div class="big">${esc(big)}</div><div class="mv">${esc(name)}</div>${cue?`<div class="cue">${esc(cue)}</div>`:''}${next?`<div class="nx">next › ${esc(next)}</div>`:''}`}
 function seqPos(t,el){let acc=0,i=0;while(i<t.steps.length&&el>=acc+t.steps[i][1]){acc+=t.steps[i][1];i++}return {i,acc}}
 function drawTimer(full){
  const t=S.timer;if(!t)return;const el=elapsed(),ov=$('#tmr');
@@ -2189,18 +2316,18 @@ function drawTimer(full){
   clock=up?fmt(el):fmt(cap-el);if(el>=cap)done=true;
   const s=stepAt(t,t.pos),n=w.items.length,nx=stepAt(t,t.pos+1),ts=totalSteps(t),last=t.pos+1>=ts;
   key='p'+t.pos;
-  stage=stageHTML(amtText(s.it.amt*s.mult,s.it.u),s.it.n,s.it.c,last?'finish':amtText(nx.it.amt*nx.mult,nx.it.u)+' '+short(nx.it.n));
+  stage=stageHTML(amtText(s.it.amt*s.mult,s.it.u),s.it.n,s.it.c,last?'finish':amtText(nx.it.amt*nx.mult,nx.it.u)+' '+short(nx.it.n),s.it.id);
   sub=w.format==='fortime'?`round ${s.round+1} of ${w.rounds||4} · move ${s.idx+1} of ${n} · cap ${fmt(cap)}`:w.format==='chipper'?`move ${s.idx+1} of ${n} · cap ${fmt(cap)}`:w.format==='ladder'?`rung ${s.round+1} · ${s.round} rung${s.round===1?'':'s'} done`:`round ${s.round+1} · ${s.round} done`;
   prog=up?t.pos/ts:el/cap;
  }else if(t.kind==='emom'){
   const m=Math.floor(el/60),n=w.items.length,it=w.items[m%n],nx=w.items[(m+1)%n];
   clock=fmt(60-(el%60));key='e'+m;if(el>=t.total)done=true;
-  stage=stageHTML(amtText(it.amt,it.u),it.n,'Finish the reps, rest the rest of the minute.',m+1<t.total/60?amtText(nx.amt,nx.u)+' '+short(nx.n):'finish');
+  stage=stageHTML(amtText(it.amt,it.u),it.n,'Finish the reps, rest the rest of the minute.',m+1<t.total/60?amtText(nx.amt,nx.u)+' '+short(nx.n):'finish',it.id);
   sub=`minute ${Math.min(m+1,t.total/60)} of ${t.total/60}`;prog=el/t.total;
  }else if(t.kind==='int'){
   const m=Math.floor(el/60),s=el%60,n=w.items.length,it=w.items[m%n],nx=w.items[(m+1)%n],work=t.work;
   rest=s>=work;clock=String(Math.ceil(rest?60-s:work-s));key='i'+m+(rest?'r':'w');if(el>=t.total)done=true;
-  stage=rest?stageHTML('REST','breathe',`next: ${nx.n}`,''):stageHTML(`${work}s`,(it.u!=='sec'?amtText(it.amt,it.u)+' · ':'')+it.n,it.c,`rest, then ${short(nx.n)}`);
+  stage=rest?stageHTML('REST','breathe',`next: ${nx.n}`,'',nx.id):stageHTML(`${work}s`,(it.u!=='sec'?amtText(it.amt,it.u)+' · ':'')+it.n,it.c,`rest, then ${short(nx.n)}`,it.id);
   sub=`round ${Math.floor(m/n)+1} of ${Math.ceil(t.total/60/n)} · move ${m%n+1} of ${n}`;prog=el/t.total;
  }else if(t.kind==='boss'){
   const B=t.boss;key='b';
@@ -2353,7 +2480,17 @@ function doUndo(){
 const CI=[['sleep','Sleep','rough','great'],['sore','Soreness','none','very sore'],['energy','Energy','low','high']];
 const ciScore=c=>Math.round(((c.sleep)+(6-c.sore)+(c.energy))/3*10)/10;
 const RECOVERY_AT=2.3;
+function vDemoSheet(){
+ const id=S.demoId,x=exById(id),ex=x?x.ex:SKILLX[id];if(!ex)return '';const pat=x?x.pat:null,mus=pat&&PAT_MUSCLE[pat]?Object.keys(PAT_MUSCLE[pat]).join(' · '):'';
+ return `<div class="sheet-bg" data-a="sheetclose"></div><div class="sheet demosheet" role="dialog" aria-label="${esc(ex.n)} demo">
+ <div class="prompt">$ <i>demo</i> ${esc(fam(ex.n))}</div>
+ <div class="demobox">${demoSVG(id,264)}</div>
+ <div class="boxh"><h2>${esc(ex.n.split(' · ')[0])}</h2>${pat?`<span class="tag">${esc(PAT[pat].label)}</span>`:''}</div>
+ <div class="small">${esc(ex.c||'')}</div>${mus?`<div class="small muted">Works: ${esc(mus.toLowerCase())}</div>`:''}
+ <div class="btns"><a class="btn ghost" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(ex.n)+' exercise form')}" target="_blank" rel="noopener">Real video ↗</a><button class="pri" data-a="sheetclose">Got it</button></div></div>`;
+}
 function vSheet(){
+ if(S.sheet==='demo')return vDemoSheet();
  if(S.sheet!=='checkin')return '';
  const c=S.ci||{sleep:3,sore:3,energy:3},sc=ciScore(c),rec=sc<=RECOVERY_AT;
  return `<div class="sheet-bg" data-a="sheetclose"></div><div class="sheet" role="dialog" aria-label="Readiness check-in">
