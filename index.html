@@ -570,7 +570,11 @@ const COOL={
 };
 const MOBILITY=[
  {name:'MOBILITY A · HIPS + SPINE',steps:[['Cat-cow',60],['90/90 hip switches',90],["World's greatest stretch · L",60],["World's greatest stretch · R",60],['Deep squat hold',90],['Couch stretch · L',60],['Couch stretch · R',60],['Pigeon · L',60],['Pigeon · R',60],['Thoracic open book · L',45],['Thoracic open book · R',45],['Seated pancake reach',90],['Cobra',45],['Child’s pose',60],['Legs up the wall, slow breathing',120]]},
- {name:'MOBILITY B · SHOULDERS + POSTERIOR',steps:[['Shoulder CARs',60],['Hip CARs · L',45],['Hip CARs · R',45],['Dead hang',30],['Doorframe pec stretch',60],['Thread the needle · L',45],['Thread the needle · R',45],['Wall slides',60],['Jefferson curl, bodyweight',60],['Standing hamstring fold',60],['Frog stretch',90],['Lizard · L',60],['Lizard · R',60],['Supine twist · L',45],['Supine twist · R',45],['Box breathing',120]]}
+ {name:'MOBILITY B · SHOULDERS + POSTERIOR',steps:[['Shoulder CARs',60],['Hip CARs · L',45],['Hip CARs · R',45],['Dead hang',30],['Doorframe pec stretch',60],['Thread the needle · L',45],['Thread the needle · R',45],['Wall slides',60],['Jefferson curl, bodyweight',60],['Standing hamstring fold',60],['Frog stretch',90],['Lizard · L',60],['Lizard · R',60],['Supine twist · L',45],['Supine twist · R',45],['Box breathing',120]]},
+ {name:'MOBILITY C · KNEES + ANKLES',steps:[['Ankle circles · L',30],['Ankle circles · R',30],['Knee-to-wall ankle rocks · L',60],['Knee-to-wall ankle rocks · R',60],['Calf stretch on a step · L',45],['Calf stretch on a step · R',45],['Tibialis raises against the wall',45],['Deep squat hold, heels down',90],['Spanish squat hold (back to the wall)',45],['Couch stretch · L',60],['Couch stretch · R',60],['Seated hamstring floss · L',45],['Seated hamstring floss · R',45],['Side-lying adductor rocks · L',45],['Side-lying adductor rocks · R',45],['Single-leg balance, eyes closed · L',30],['Single-leg balance, eyes closed · R',30],['Legs up the wall',120]]},
+ {name:'MOBILITY D · DESK RESET',steps:[['Chin tucks, slow',45],['Neck side stretch · L',30],['Neck side stretch · R',30],['Wall angels',60],['Thoracic extension over the couch edge',60],['Thoracic open book · L',45],['Thoracic open book · R',45],['Doorframe pec stretch',60],['Kneeling hip flexor · L',60],['Kneeling hip flexor · R',60],['Glute bridge hold, 3 slow breaths per rep',60],['Prone Y-raises',45],['Cat-cow',45],['Child’s pose, side reach · L',40],['Child’s pose, side reach · R',40],['Box breathing 4-4-4-4',120]]},
+ {name:'MOBILITY E · WRISTS + SHOULDERS',steps:[['Wrist circles both ways',45],['Kneeling wrist stretch, fingers forward',45],['Kneeling wrist stretch, fingers back',45],['Fist rocks on the floor',30],['Shoulder CARs',60],['Scap push-ups, slow',45],['Dead hang, relaxed',30],['Doorframe lat stretch · L',40],['Doorframe lat stretch · R',40],['Sleeper stretch · L',45],['Sleeper stretch · R',45],['Puppy pose',60],['Pike hold, easy',30],['Thread the needle · L',40],['Thread the needle · R',40],['Wall slides',60],['Slow breathing on your back',90]]},
+ {name:'MOBILITY F · RECOVERY FLOW',steps:[['Belly breathing on your back',120],['Knees-to-chest rocks',45],['Supine twist · L',60],['Supine twist · R',60],['Happy baby',60],['Cat-cow, slow',60],['Child’s pose',60],['Sphinx',60],['Figure-4 on your back · L',60],['Figure-4 on your back · R',60],['Butterfly stretch',60],['Seated forward fold, relaxed',60],['Legs up the wall',180],['Savasana',120]]}
 ];
 const RUNS=[
  {name:'EASY RUN',desc:'Conversational pace the whole way. You should be able to talk.',steps:[['Easy run',1500]]},
@@ -1012,8 +1016,9 @@ const YOGA=[
  {name:'YOGA A · SUN FLOW',steps:[['Child’s pose, slow breathing',60],['Cat-cow',60],['Downward dog',45],['Sun salutation A ×3, move with the breath',180],['Warrior I · L',40],['Warrior I · R',40],['Warrior II · L',40],['Warrior II · R',40],['Triangle · L',40],['Triangle · R',40],['Chair pose',30],['Tree pose · L',30],['Tree pose · R',30],['Low lunge · L',45],['Low lunge · R',45],['Seated forward fold',60],['Bridge pose',45],['Supine twist · L',45],['Supine twist · R',45],['Savasana',180]]},
  {name:'YOGA B · HIPS + BALANCE',steps:[['Easy seat, box breathing',60],['Cat-cow',45],['Downward dog',45],['Sun salutation A ×2',120],['Crescent lunge · L',40],['Crescent lunge · R',40],['Warrior III · L',30],['Warrior III · R',30],['Half moon · L',30],['Half moon · R',30],['Garland squat',60],['Pigeon · L',75],['Pigeon · R',75],['Boat pose',30],['Bridge pose',45],['Happy baby',60],['Reclined bound angle',90],['Savasana',180]]}
 ];
-const MOBFLEX=MOBILITY.map((M,i)=>({name:`MOBILITY + FLEX ${'AB'[i]} · FULL BODY`,steps:[...M.steps.slice(0,9),...FLEX[i].steps.slice(0,8)]}));
-function mobFor(k){const t=typeOf(k),L=t==='flex'?FLEX:t==='yoga'?YOGA:t==='mobflex'?MOBFLEX:MOBILITY;return L[weekIndex(k)%L.length]}
+const MOBFLEX=MOBILITY.slice(0,2).map((M,i)=>({name:`MOBILITY + FLEX ${'AB'[i]} · FULL BODY`,steps:[...M.steps.slice(0,9),...FLEX[i].steps.slice(0,8)]}));
+// mobility rotates A-E through the 6-week cycle; the deload week gets the recovery flow
+function mobFor(k){const t=typeOf(k);if(t==='mobility'||t==='rest'){const M=MOBILITY,R=M.find(m=>/RECOVERY/.test(m.name));if(isDeload(k)&&R)return R;const L=M.filter(m=>m!==R);return L[weekIndex(k)%L.length]}const L=t==='flex'?FLEX:t==='yoga'?YOGA:MOBFLEX;return L[weekIndex(k)%L.length]}
 function warmFor(type){const t=TEMPLATES[type];return [...WARM.base.slice(0,t.warm==='run'?2:6),...(WARM[t.warm]||[])].map(s=>S.profile.lowImpact&&s[0]==='Jumping jacks'?['March in place, arms swinging',s[1]]:s)}
 function coolFor(type){return COOL[TEMPLATES[type].cool]||[]}
 const seqSecs=s=>s.reduce((a,b)=>a+b[1],0);
@@ -1488,7 +1493,7 @@ function vRun(k,d){
 function vMob(k,d){
  const M=mobFor(k),mob=d.mob||{};
  return `<div class="box ${mob.done?'':'hot'}"><div class="boxh"><h2>${esc(M.name.split(' · ')[0])}</h2><span class="tag a">${Math.round(seqSecs(M.steps)/60)} MIN</span></div>
- <div class="muted small">${esc(M.name.split(' · ')[1]||'')}. Slow, easy breathing. Nothing should hurt. Alternates A/B each week.</div>
+ <div class="muted small">${esc(M.name.split(' · ')[1]||'')}. Slow, easy breathing. Nothing should hurt. A new routine each week, recovery flow on deload weeks.</div>
  ${seqList(M.steps)}
  <div class="btns"><button class="pri" data-a="seq" data-v="mob">▶ Guided routine</button><button class="${mob.done?'on':'ghost'}" data-a="markmob">${mob.done?'✓ Done':'Mark done'}</button></div></div>
  <div class="warnbox">Sunday is also a good day to log weight and measurements on the Body tab, same time each week.</div>`;
