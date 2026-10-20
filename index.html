@@ -829,7 +829,8 @@ function generate(k,reroll=0){
  const rounds=capItems(items,{f,mins,dl,newbie,work});
  const fi=items.find(it=>PAT_MUSCLE[it.pat]&&it.pat!=='core'&&it.pat!=='pull');
  const fin=fi&&!recovery&&!deload?{id:fi.id,n:fi.n,u:fi.u==='sec'&&f==='intervals'?(exById(fi.id)?.ex.u||'reps'):fi.u,pat:fi.pat}:null;
- const out={type,title:T.title,format:f,deload,recovery,loc,mins,rounds,items,fin};if(work)out.work=work;
+ const tfin=fin&&rng(hash(k+':tf:'+reroll))()<.35?pickTfin(k,items,loc):null;
+ const out={type,title:T.title,format:f,deload,recovery,loc,mins,rounds,items,fin:tfin?null:fin};if(tfin)out.tfin=tfin;if(work)out.work=work;
  return GEN[ck]=nameIt(out);
 }
 /* ============ signature workouts ============
@@ -922,6 +923,80 @@ function sigPick(k,{slotCheck=true}={}){
  return pool[Math.floor(rng(hash('sig:'+k))()*pool.length)];
 }
 function sigFor(k){const sg=sigPick(k);return sg?buildSig(sg,sigVersionIdx(sg,k),k):null}
+/* ============ skill progressions ============
+   A short technique block after the warm-up: 3 low-rep sets of one skill step, done fresh.
+   Two clean sessions on a step moves you to the next one. */
+const SKILLX={
+ oa_incl:{id:'oa_incl',n:'One-arm incline push-up (couch)',u:'side',c:'Feet wide, free hand behind your back, hips square to the floor.',q:['couch']},
+ oa_incl_low:{id:'oa_incl_low',n:'One-arm incline push-up (low step)',u:'side',c:'Same as the couch version on a lower surface, like the bottom stair.'},
+ oa_pu_neg:{id:'oa_pu_neg',n:'One-arm push-up negative',u:'side',c:'Lower on one arm for 4 seconds, reset on two arms, repeat.'},
+ pike_hold:{id:'pike_hold',n:'Pike hold, shoulders over hands',u:'sec',c:'Hips high, walk the feet in, push the floor away with weight in your hands.'},
+ wall_hs_tap:{id:'wall_hs_tap',n:'Wall handstand shoulder taps',u:'side',c:'Chest to the wall, shift your weight and tap the opposite shoulder.'},
+ pistol_neg:{id:'pistol_neg',n:'Pistol squat negative to couch',u:'side',c:'Lower on one leg for 4 seconds, sit, stand up on two.',q:['couch']},
+ pistol_asst:{id:'pistol_asst',n:'Assisted pistol, hand on the doorframe',u:'side',c:'Full depth on one leg, use the frame only as much as you need.'},
+ pistol:{id:'pistol',n:'Pistol squat',u:'side',c:'Arms forward, heel flat, all the way down and up.'},
+ tuck_lsit:{id:'tuck_lsit',n:'Tuck L-sit on two chairs',u:'sec',c:'Shoulders pushed down, knees to chest, feet off the floor.'},
+ lsit_one:{id:'lsit_one',n:'One-leg L-sit on two chairs',u:'sec',c:'One leg straight out, one tucked. Switch legs each set.'},
+ lsit:{id:'lsit',n:'L-sit on two chairs',u:'sec',c:'Legs straight and level, shoulders down, chest proud.'}
+};
+const skEx=id=>SKILLX[id]||(exById(id)||{}).ex;
+const SKILL_TRACKS={
+ pullup:{n:'PULL-UP',goal:'10 strict pull-ups, then archers',steps:[['scap_pull',8],['flex_hang',20],['neg_pu',3],['pullup',3],['pullup',5],['tempo_pull',4],['arch_pull',2],['w_pull',4]]},
+ pushup:{n:'ONE-ARM PUSH-UP',goal:'a one-arm push-up',steps:[['diam_pu',10],['arch_pu',4],['arch_pu',6],['pp_pu',6],['oa_incl',4],['oa_incl_low',4],['oa_pu_neg',3]]},
+ handstand:{n:'HANDSTAND',goal:'a 40-second wall handstand',steps:[['pike_hold',30],['epike',6],['wall_walk',2],['wall_hs',20],['wall_hs',40],['wall_hs_tap',5]]},
+ pistol:{n:'PISTOL SQUAT',goal:'a bodyweight pistol squat',steps:[['cossack',6],['pistol_box',4],['pistol_box',6],['pistol_neg',3],['pistol_asst',4],['pistol',2],['pistol',5]]},
+ lsit:{n:'L-SIT',goal:'a 10-second L-sit and toes-to-bar',steps:[['hollow',30],['hkr',8],['tuck_lsit',10],['hlr',6],['lsit_one',10],['ttb',5],['lsit',10]]}
+};
+const skillGearOk=id=>{const e=skEx(id);return !!e&&(e.q||[]).every(q=>S.profile.equip[q])};
+// which track fits the day: push days alternate push-up and handstand, pull days pull-ups, legs pistols, full body the L-sit
+function skillTrackFor(k){
+ const T=TEMPLATES[typeOf(k)];if(!T.slots)return null;const f=tmplFocus(T),odd=weekIndex(k)%2;
+ const pick=f==='push'?(odd?'handstand':'pushup'):f==='pull'?'pullup':f==='upper'?(odd?'pullup':'pushup'):f==='lower'?'pistol':'lsit';
+ return [pick,'lsit','pushup'].find(t=>SKILL_TRACKS[t].steps.some(([id])=>skillGearOk(id)))||null;
+}
+function skillStart(t){
+ const pm=bossBest('pullups'),pu=bossBest('pushups');
+ if(t==='pullup')return pm==null?2:pm>=8?4:pm>=5?3:pm>=2?2:pm>=1?1:0;
+ if(t==='pushup')return pu==null?0:pu>=40?2:pu>=25?1:0;
+ if(t==='lsit')return S.profile.equip.bar?1:0;
+ return 0;
+}
+function skillState(t){const s=(S.profile.skill||{})[t];return s&&typeof s.i==='number'?s:{i:skillStart(t),c:0}}
+function skillStep(t){const T=SKILL_TRACKS[t],st=skillState(t);let i=Math.min(st.i,T.steps.length-1);while(i>0&&!skillGearOk(T.steps[i][0]))i--;const [id,amt]=T.steps[i],e=skEx(id);return {i,n:T.steps.length,id,amt,e,sets:3,rest:e.u==='sec'||t==='lsit'?60:90}}
+function skillSteps(k){const t=skillTrackFor(k);if(!t)return [];const s=skillStep(t),work=s.e.u==='sec'?s.amt+5:s.e.u==='side'?s.amt*8+10:s.amt*4+5,out=[];
+ for(let j=1;j<=s.sets;j++){out.push([`Set ${j}/${s.sets} · ${amtText(s.amt,s.e.u)} ${s.e.n}`,work]);if(j<s.sets)out.push(['Rest',s.rest])}return out}
+function vSkill(k,d){
+ const t=skillTrackFor(k);if(!t)return '';const T=SKILL_TRACKS[t],s=skillStep(t),st=skillState(t),done=d.skill&&d.skill.t===t;
+ return `<div class="box"><details ${done?'':''}><summary><span>Skill · ${esc(T.n.toLowerCase())} · step ${s.i+1}/${s.n}</span><span class="tag ${done?'ok':''}" style="margin-left:auto">${done?(d.skill.res==='clean'?'clean':'logged'):'optional'}</span></summary>
+ <div class="small muted">Technique while you are fresh, before the workout. Goal: ${esc(T.goal)}. Two clean sessions on a step unlock the next one${st.c?` (1 of 2 done)`:''}.</div>
+ <div class="list"><div class="row"><span class="amt">3×${amtText(s.amt,s.e.u)}</span><span class="nm">${esc(s.e.n)}<small>${esc(s.e.c||'')} Rest ${s.rest}s between sets. Stop the set if form slips.</small></span><span class="pat">SKILL</span></div></div>
+ ${done?`<div class="small muted">Logged: ${d.skill.res==='clean'?'all sets clean':'struggled'}${d.skill.msg?' · '+esc(d.skill.msg):''}</div>`:`<div class="btns"><button data-a="seq" data-v="skill">▶ Guided sets</button><button class="ghost" data-a="skilllog" data-v="clean">✓ All clean</button><button class="ghost" data-a="skilllog" data-v="hard">Struggled</button></div>`}
+ </details></div>`;
+}
+function skillLog(res){
+ const k=S.view,t=skillTrackFor(k);if(!t)return;const T=SKILL_TRACKS[t];let msg='';
+ const m=withXP(()=>{
+  editProfile(p=>{p.skill={...(p.skill||{})};const st={...skillState(t)};
+   if(res==='clean'){st.c=(st.c||0)+1;if(st.c>=2&&st.i<T.steps.length-1){st.i++;st.c=0;const nx=skEx(T.steps[st.i][0]);msg=`▲ ${T.n.toLowerCase()}: next step → ${nx?nx.n:''}`}else if(st.c>=2){msg='top step reached';st.c=0}else msg='1 more clean session to move up'}
+   else{st.c=0;msg='same step next time'}
+   p.skill[t]=st});
+  editDay(k,d=>{d.skill={t,i:skillStep(t).i,res,msg}});
+ });
+ S.flash='> Skill logged · '+msg+(m.length?'\n'+m.join('\n'):'');render();
+}
+
+/* ============ for-time finishers ============
+   Sometimes the finisher is one move for time instead of max reps, on a move the main workout did not use. */
+const TFIN=[['burpee',[15,20,30,40]],['air_sq',[50,75,100,120]],['jj',[60,100,150,200]],['mc',[20,30,40,50]],['jump_sq',[20,30,40,50]],['sq_thrust',[20,30,40,50]],['pu',[20,30,40,50]],['plank_jack',[30,40,60,80]]];
+const UPPER_PATS=new Set(['push','vpush','dip','pull','row','arms']),LOWER_PATS=new Set(['squat','lunge','hinge']);
+function pickTfin(k,items,loc){
+ const r=rng(hash(k+':tfin')),up=items.some(i=>UPPER_PATS.has(i.pat)),low=items.some(i=>LOWER_PATS.has(i.pat)),eq=equipFor(loc);
+ const ok=TFIN.filter(([id])=>{const e=exById(id);if(!e||!optOk(e.ex,eq,loc)||items.some(i=>i.id===id||fam(i.n)===fam(e.ex.n)))return false;if(up&&!low)return !UPPER_PATS.has(e.pat);if(low&&!up)return !LOWER_PATS.has(e.pat);return ['cardio','burpee'].includes(e.pat)});
+ if(!ok.length)return null;const [id,amts]=ok[Math.floor(r()*ok.length)],e=exById(id),tier=sigTier(k);
+ return {id,n:locText(e.ex.n,loc),u:e.ex.u,pat:e.pat,amt:amts[Math.max(0,Math.min(3,tier-1))],time:true};
+}
+const tfinKey=f=>f.id+'*'+f.amt;
+function tfinBest(f,exceptK){let b=null;for(const dk of allDayKeys()){if(dk===exceptK)continue;const w=getDay(dk).workout;if(w&&w.tfin&&w.result&&w.result.tfin!=null&&tfinKey(w.tfin)===tfinKey(f)&&(b==null||w.result.tfin<b.v))b={v:w.result.tfin,k:dk}}return b}
 function workoutFor(k){const d=getDay(k);return d.workout||generate(k,d.reroll||0)}
 const WALKS=[
  {name:'BRISK WALK',desc:'5 min easy, 20 min at a pace where talking takes effort, 5 min easy.',steps:[['Easy walk',300],['Brisk walk',1200],['Easy walk',300]]},
@@ -1206,7 +1281,7 @@ function computeHero(){
  if(HERO)return HERO;
  const g=S.profile.goals,keys=allDayKeys(),t=TODAY();
  const attr={STR:0,END:0,CORE:0,MOB:0,DISC:0};
- const finSeen={};const sigBest={},sigKinds=new Set();const h={sigs:0,sigPRs:0,sigFull:0,sigKinds:0,fins:0,finPRs:0,comebacks:0,perfect:0,xp:0,reps:0,burpees:0,workouts:0,runs:0,mobs:0,proteinDays:0,weighIns:0,hardOnes:0,outSprint:false,locs:0,waterRun:0,perDay:{}};
+ const finSeen={};const sigBest={},sigKinds=new Set(),tfSeen={};const h={sigs:0,sigPRs:0,sigFull:0,sigKinds:0,fins:0,finPRs:0,comebacks:0,perfect:0,xp:0,reps:0,burpees:0,workouts:0,runs:0,mobs:0,proteinDays:0,weighIns:0,hardOnes:0,outSprint:false,locs:0,waterRun:0,perDay:{}};
  const locs=new Set();const normLoc=l=>l==='out'?'yard':(l||'home');let wr=0,prev=null;
  const weighWeeks=new Set();
  for(const k of keys){
@@ -1227,6 +1302,8 @@ function computeHero(){
   if(d.weight){h.weighIns++;if(!weighWeeks.has(monOf(k))){weighWeeks.add(monOf(k));x+=10;attr.DISC+=1}}
   if(d.meas&&Object.values(d.meas).some(Boolean))x+=10;
   {const w=d.workout;if(w&&w.signature&&w.result&&!w.result.dnf){h.sigs++;x+=50;sigKinds.add(w.signature);if(!w.ver)h.sigFull++;const sc=scoreOf(w);if(sc!=null){if(sigBest[w.name]!=null&&sc>sigBest[w.name]){h.sigPRs++;x+=100}sigBest[w.name]=Math.max(sigBest[w.name]??-Infinity,sc)}}}
+  {const w=d.workout;if(w&&w.tfin&&w.result&&w.result.tfin!=null){h.fins++;x+=25;const key=tfinKey(w.tfin),n=w.tfin.amt*(w.tfin.u==='side'?2:1);h.reps+=n;if(BURPEE_IDS.has(w.tfin.id))h.burpees+=n;if(tfSeen[key]!=null&&w.result.tfin<tfSeen[key]){h.finPRs++;x+=50}tfSeen[key]=Math.min(tfSeen[key]??Infinity,w.result.tfin)}}
+  if(d.skill){x+=15;attr.STR+=2}
   {const w=d.workout;if(w&&w.fin&&w.result&&w.result.fin!=null){h.fins++;x+=25;const id=w.fin.id;if(finSeen[id]!=null&&w.result.fin>finSeen[id]){h.finPRs++;x+=50}finSeen[id]=Math.max(finSeen[id]??-1,w.result.fin)}}
   h.perDay[k]=x;h.xp+=x;
  }
@@ -1347,6 +1424,7 @@ function vWorkout(k,d){
  let h=`<div class="box">
   <details><summary><span>Warm-up · ${Math.round(seqSecs(warm)/60)} min</span><span class="tag ${d.warm?'ok':''}" style="margin-left:auto">${d.warm?'done':'tap to open'}</span></summary>
   ${seqList(warm)}<div class="btns" style="margin-top:10px"><button data-a="seq" data-v="warm">▶ Guided warm-up</button><button class="ghost ${d.warm?'on':''}" data-a="mark" data-v="warm">${d.warm?'✓ Done':'Mark done'}</button></div></details></div>`;
+ h+=vSkill(k,d);
  h+=`<div class="box ${done?'':'hot'}">
   <div class="boxh"><h2>${esc(w.title)}</h2><span class="tag a">${fmtL(w)}</span></div>
   <div class="code">${esc(w.name)}</div>
@@ -1357,7 +1435,7 @@ function vWorkout(k,d){
   <div class="chipsrow"><span class="tag">~${estimateMins(w)} min</span><span class="tag" aria-label="Difficulty ${difficulty(w)} of 5">${dots(difficulty(w))}</span>${d.checkin?`<span class="tag ${w.recovery?'am':'ok'}">ready ${d.checkin.score.toFixed(1)}</span>`:''}</div>
   <div class="muted small">${esc(fmtD(w))}${w.deload?' <span style="color:var(--amber)">Deload week: volume at 75%.</span>':''}</div>
   ${w.shared?'<div class="small" style="color:var(--amber)">Shared workout from a code. Swap any move you can\'t do.</div>':''}${w.recovery?'<div class="warnbox">Recovery mode: about 20% less volume today, from your check-in.</div>':''}
-  <div class="list">${w.items.map((it,i)=>`<div class="row"><span class="amt">${w.format==='ladder'?'+'+amtText(it.amt,it.u):w.format==='emom'?'M'+(i+1):amtText(it.amt,it.u)}</span><span class="nm">${w.format==='emom'?amtText(it.amt,it.u)+' · ':''}${esc(it.n)}<small>${esc(it.c||'')} <a class="demo" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(it.n)+' exercise form')}" target="_blank" rel="noopener">demo ↗</a>${done||w.signature?'':` <button class="lnk" data-a="swap" data-v="${i}">⇄ swap</button> <button class="lnk" data-a="ban" data-v="${i}">⊘ hide</button>`}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}${w.fin?`<div class="row fin"><span class="amt">MAX</span><span class="nm">Finisher · ${esc(w.fin.n)}<small>${w.fin.u==='sec'?'One max hold':'One set of max reps'} after the workout. Stop one rep before your form breaks.${(()=>{const b=finBest(w.fin.id);return b?` Record: ${b.v}.`:''})()}</small></span><span class="pat">PR</span></div>`:''}</div>`;
+  <div class="list">${w.items.map((it,i)=>`<div class="row"><span class="amt">${w.format==='ladder'?'+'+amtText(it.amt,it.u):w.format==='emom'?'M'+(i+1):amtText(it.amt,it.u)}</span><span class="nm">${w.format==='emom'?amtText(it.amt,it.u)+' · ':''}${esc(it.n)}<small>${esc(it.c||'')} <a class="demo" href="https://www.youtube.com/results?search_query=${encodeURIComponent(fam(it.n)+' exercise form')}" target="_blank" rel="noopener">demo ↗</a>${done||w.signature?'':` <button class="lnk" data-a="swap" data-v="${i}">⇄ swap</button> <button class="lnk" data-a="ban" data-v="${i}">⊘ hide</button>`}</small></span><span class="pat">${esc(PAT[it.pat]?.label||'')}</span></div>`).join('')}${w.fin?`<div class="row fin"><span class="amt">MAX</span><span class="nm">Finisher · ${esc(w.fin.n)}<small>${w.fin.u==='sec'?'One max hold':'One set of max reps'} after the workout. Stop one rep before your form breaks.${(()=>{const b=finBest(w.fin.id);return b?` Record: ${b.v}.`:''})()}</small></span><span class="pat">PR</span></div>`:''}${w.tfin?`<div class="row fin"><span class="amt">${amtText(w.tfin.amt,w.tfin.u)}</span><span class="nm">Finisher · ${esc(short(w.tfin.n))} for time<small>After the workout, rest 2 minutes, then go as fast as clean reps allow.${(()=>{const b=tfinBest(w.tfin,k);return b?` Record: ${fmt(b.v)}.`:' First attempt sets your record.'})()}</small></span><span class="pat">TIME</span></div>`:''}</div>`;
  if(done){
   const r=w.result;
   h+=`<div class="grid3"><div class="stat"><b>${r.time!=null?fmt(r.time):(r.rounds!=null?r.rounds+(r.reps?'+'+r.reps:''):'✓')}</b><span>${r.time!=null?'time':r.rounds!=null?(w.format==='ladder'?'rungs':'rounds'):'complete'}</span></div><div class="stat"><b>${{easy:'EZ',right:'OK',hard:'HARD'}[r.rating]||'—'}</b><span>felt</span></div><div class="stat"><b>${(r.prog||[]).length}</b><span>adjustments</span></div></div>
@@ -1390,6 +1468,7 @@ function vResultForm(k,w){
  <div><div class="small muted" style="margin-bottom:6px">HOW DID IT FEEL?</div>
  <div class="grid3">${[['easy','Too easy'],['right','Just right'],['hard','Too hard']].map(([v,l])=>`<button data-a="rate" data-v="${v}" class="${(S.rating||r.rating)===v?'on':''}">${l}</button>`).join('')}</div></div>
  ${w.fin?`<label>Finisher: max ${w.fin.u==='sec'?'seconds':w.fin.u==='side'?'reps per side':'reps'} · ${esc(short(w.fin.n))}<input id="r-fin" type="number" inputmode="numeric" placeholder="${(()=>{const b=finBest(w.fin.id);return b?'record '+b.v:'optional'})()}" value="${r.fin??''}"></label>`:''}
+ ${w.tfin?`<label>Finisher: ${amtText(w.tfin.amt,w.tfin.u)} ${esc(short(w.tfin.n))} for time (mm:ss)<input id="r-tfin" inputmode="numeric" placeholder="${(()=>{const b=tfinBest(w.tfin,k);return b?'record '+fmt(b.v):'optional'})()}" value="${S.tfinDraft||(r.tfin!=null?fmt(r.tfin):'')}"></label><button class="sm ghost" data-a="tfintimer">⏱ Stopwatch for the finisher</button>`:''}
  <label>Notes<textarea id="r-notes" placeholder="Pull-ups broke into singles in round 3">${esc(r.notes||'')}</textarea></label>
  <div class="btns"><button class="pri" data-a="saveresult">Save + progress</button>${w.result?'':'<button class="ghost" data-a="cancelform">Cancel</button>'}</div>
  <div class="small muted">Rating adjusts volume for each movement pattern. Too easy +8%, just right +2%, too hard −10%. At 130% a pattern levels up, at most once every two weeks.</div></div>`;
@@ -1622,7 +1701,7 @@ function vCharacter(){
  <div class="box"><div class="grid3"><div class="stat"><b>${h.reps.toLocaleString()}</b><span>lifetime reps</span></div><div class="stat"><b>${h.burpees}</b><span>burpees</span></div><div class="stat"><b>${h.sessions}</b><span>sessions</span></div></div></div>
  <div class="box"><div class="boxh"><h2>ACHIEVEMENTS</h2><span class="tag">${h.ach.length}/${ACH.length}</span></div>
  <div class="ach">${ACH.map(a=>{const on=h.ach.includes(a.id);return `<div class="achi ${on?'on':''}"><b>${on?'■':'□'} ${a.n}</b><span>${esc(a.d)} · +${a.xp}</span></div>`}).join('')}</div></div>
- <div class="box"><div class="boxh"><h2>XP TABLE</h2></div><div class="list small">${[['Workout logged',100],['Run or mobility day','100 / 80'],['Warm-up / cool-down','10 each'],['Protein goal',20],['Walk goal',15],['Water goal',10],['Weekly weigh-in',10],['Measurements',10],['Every 7-day streak',50],['Comeback after a miss','+100'],['Perfect week',150],['Max-reps finisher','25'],['Finisher record','+50'],['Signature workout','+50'],['Signature record','+100']].map(([a,b])=>`<div class="row"><span class="nm">${a}</span><span class="muted">${b}</span></div>`).join('')}</div></div>
+ <div class="box"><div class="boxh"><h2>XP TABLE</h2></div><div class="list small">${[['Workout logged',100],['Run or mobility day','100 / 80'],['Warm-up / cool-down','10 each'],['Protein goal',20],['Walk goal',15],['Water goal',10],['Weekly weigh-in',10],['Measurements',10],['Every 7-day streak',50],['Comeback after a miss','+100'],['Perfect week',150],['Max-reps finisher','25'],['Finisher record','+50'],['Skill session','15'],['Signature workout','+50'],['Signature record','+100']].map(([a,b])=>`<div class="row"><span class="nm">${a}</span><span class="muted">${b}</span></div>`).join('')}</div></div>
  `;
 }
 function vReports(){
@@ -1814,6 +1893,8 @@ const ACT={
   if(cal)m.unshift(cal);
   const pr=prev==null?'First record set.':(B.lower?v<prev:v>prev)?`NEW RECORD (was ${bossFmt(B,prev)})`:`Record stands at ${bossFmt(B,prev)}.`;
   S.bossDraft=null;S.flash=`> ${B.n}: ${bossFmt(B,v)}. ${pr}\n${m.join('\n')}`;render();scrollTo(0,0)},
+ tfintimer:()=>{const w=workoutFor(S.view);if(!w.tfin)return;if(S.form===S.view){const pr=S.pendingResult=S.pendingResult||{},v=id=>$('#'+id)?.value;const tm=parseTime(v('r-time'));if(tm!=null)pr.time=tm;if(v('r-rounds'))pr.rounds=+v('r-rounds');if(v('r-reps'))pr.reps=+v('r-reps');if(v('r-fin'))pr.fin=+v('r-fin');if(v('r-notes'))pr.notes=v('r-notes')}openTimer({kind:'boss',k:S.view,boss:{id:'tfin',n:'FINISHER',test:`${amtText(w.tfin.amt,w.tfin.u)} ${short(w.tfin.n)} for time`,unit:'time',sw:true},total:0,label:'FINISHER',rounds:0})},
+ skilllog:b=>skillLog(b.dataset.v),
  bosstimer:b=>{const B=BOSSES.find(x=>x.id===b.dataset.v);openTimer({kind:'boss',boss:B,total:B.cd||0,label:B.n,rounds:0})},
  ban:b=>{undoable('Move hidden',()=>swapItem(+b.dataset.v,true))},
  unban:b=>{editProfile(p=>{p.ban=(p.ban||[]).filter(x=>x!==b.dataset.v)});render()},
@@ -1875,6 +1956,7 @@ function saveResult(){
  if(F.timer==='up'){const t=parseTime($('#r-time')?.value);if(t!=null)r.time=t}
  if(F.timer==='amrap'){const ro=$('#r-rounds')?.value,re=$('#r-reps')?.value;if(ro!=='')r.rounds=+ro;if(re)r.reps=+re}
  const fv=$('#r-fin')?.value,prevFin=w.fin?finBest(w.fin.id):null;if(w.fin&&fv)r.fin=Math.round(+fv);
+ const tv=w.tfin?parseTime($('#r-tfin')?.value):null,prevT=w.tfin?tfinBest(w.tfin,k):null;if(tv!=null)r.tfin=tv;S.tfinDraft=null;
  const first=!w.result;
  const sigPrev=w.signature?bestOf(attemptsOf(w.name,k)):null,sigFirst=w.signature&&!attemptsOf(w.name,k).length;
  let xpm=[];
@@ -1887,6 +1969,7 @@ function saveResult(){
  S.form=null;S.rating=null;S.pendingResult=null;
  const sigMsg=!first||!w.signature||r.dnf?'':sigFirst?`BENCHMARK SET ${w.name}: ${resultText(w)}`:sigPrev&&scoreOf(w)>scoreOf(sigPrev.w)?`NEW PR ${w.name}: ${resultText(w)} (was ${resultText(sigPrev.w)})`:sigPrev?`${w.name}: ${resultText(w)} · best ${resultText(sigPrev.w)}`:'';
  let prMsg=r.fin!=null&&w.fin?(prevFin==null?`FIRST RECORD ${short(w.fin.n)}: ${r.fin}`:r.fin>prevFin.v?`NEW PR ${short(w.fin.n)}: ${r.fin} (was ${prevFin.v})`:''):'';
+ if(first&&r.tfin!=null){const tm=prevT==null?`FIRST RECORD ${amtText(w.tfin.amt,w.tfin.u)} ${short(w.tfin.n)}: ${fmt(r.tfin)}`:r.tfin<prevT.v?`NEW PR ${amtText(w.tfin.amt,w.tfin.u)} ${short(w.tfin.n)}: ${fmt(r.tfin)} (was ${fmt(prevT.v)})`:'';if(tm)prMsg=prMsg?prMsg+'\n'+tm:tm}
  if(sigMsg)prMsg=prMsg?sigMsg+'\n'+prMsg:sigMsg;
  if(first)setTimeout(()=>celebrateDone(w,r,xpm,prMsg),60);
  S.flash=first?`> ${w.name} logged.${prMsg?'\n'+prMsg:''}\n${xpm.join('\n')}${r.prog.length?'\n'+r.prog.join('\n'):''}`:'> Result updated.';
@@ -1927,6 +2010,7 @@ function launchWorkout(k){
 }
 function startSeq(which){
  const k=S.view,type=typeOf(k);
+ if(which==='skill'){const st=skillSteps(k);if(!st.length)return;const t=skillTrackFor(k);say(`skill. ${SKILL_TRACKS[t].n.toLowerCase()}. First: ${st[0][0]}`);openTimer({kind:'seq',steps:st,total:seqSecs(st),label:'SKILL · '+SKILL_TRACKS[t].n,which,k});return}
  const steps=which==='warm'?warmFor(type):which==='cool'?coolFor(type):which==='mob'?mobFor(k).steps:runFor(k).steps;
  const label={warm:'WARM-UP',cool:'COOL-DOWN',mob:mobFor(k).name,run:runFor(k).name}[which];
  say(`${label.split(' · ')[0].toLowerCase()}. First: ${steps[0][0]}`);
@@ -2037,6 +2121,7 @@ function finishTimer(auto){
  const t=S.timer;if(!t)return;const el=Math.max(0,Math.round(elapsed()));
  if(t.kind==='boss'){
   const B=t.boss;closeTimer();
+  if(B.id==='tfin'){S.tfinDraft=fmt(el);S.tab='today';S.view=t.k;render();setTimeout(()=>$('#r-tfin')?.scrollIntoView({block:'center'}),50);return}
   S.bossDraft={id:B.id,v:B.cd?String(t.rounds||0):B.unit==='time'?fmt(el):String(el)};
   S.tab='hero';S.heroTab='boss';S.flash=`> ${B.n}: ${B.cd?(t.rounds||0)+' reps':B.unit==='time'?fmt(el):el+'s'}. Check it, then tap Log.`;render();
   setTimeout(()=>$('#boss-'+B.id)?.scrollIntoView({block:'center'}),50);return;
