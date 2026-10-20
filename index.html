@@ -251,6 +251,9 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
 .slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
 .lootprev{display:flex;gap:14px;align-items:center}
+.phase.lnk{margin:-8px -8px 0 0;padding:8px;min-height:0;color:var(--amber);font-size:11px;text-decoration:underline dotted;text-underline-offset:3px;white-space:normal;text-align:right;max-width:62%}
+.jtl{display:flex;gap:3px;margin:4px 0}.jc{flex:1;display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:3px;padding:3px 0;font-size:10px;color:var(--dim)}.jc b{font:400 16px/1 var(--crt)}.jc i{font-style:normal}.jc.past{background:var(--panel2);color:var(--fg)}.jc.now{border-color:var(--accent);color:var(--accent)}.jc.mH i,.jc.mT i{color:var(--amber)}
+.planday{display:flex;width:100%;text-align:left;background:none;border:0;border-top:1px dashed var(--line);color:var(--fg);font:inherit;padding:9px 0;gap:10px;align-items:center;cursor:pointer}.planday:first-child{border-top:0}.planday .pdd{min-width:44px;font-size:11px;color:var(--dim);display:flex;flex-direction:column}.planday .pdd b{font:400 20px/1 var(--crt);color:var(--fg)}.planday.now .pdd b{color:var(--accent)}.planday .nm{flex:1}
 .assessrow .arow{display:flex;gap:8px;margin-top:8px;align-items:center}.assessrow .arow input{flex:1;min-width:0}
 .sigs{display:grid;gap:8px}.sigcard{display:grid;gap:3px;text-align:left;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--fg);font:inherit;cursor:pointer}.sigcard .sn{font:400 26px/1 var(--crt);color:var(--amber)}.sigcard .st{font-size:11px;letter-spacing:.04em;color:var(--dim);text-transform:uppercase}.sigcard .sb{font-size:12.5px}.sigcard.off{opacity:.45}
 .tag-btn{margin-left:auto;min-height:32px;padding:4px 10px;font-size:11.5px}
@@ -680,14 +683,15 @@ function exerciseFor(pat,r,lv,loc='home'){
 }
 function amount(ex,v,f){const raw=ex.r*v*f;return ex.u==='sec'?Math.max(10,Math.round(raw/5)*5):Math.max(1,Math.round(raw))}
 const amtText=(n,u)=>u==='sec'?`${n}s`:u==='side'?`${n}/side`:`${n}`;
-function weekIndex(k){return Math.floor(Math.max(0,daysBetween(S.profile.start,k))/7)}
-const isDeload=k=>weekIndex(k)%6===5;
+// program weeks are calendar weeks (Mon-Sun), counted from the week Day 1 falls in
+function weekIndex(k){return Math.floor(Math.max(0,daysBetween(monOf(S.profile.start),k))/7)}
+const isDeload=k=>weekIndex(k)%6===5&&!isHell(k);
 const dayLoc=k=>{const l=getDay(k).loc||S.profile.loc||'home';return l==='out'?'yard':l};
 const dayMins=k=>+(getDay(k).mins||S.profile.mins||20);
 const FMT_W={athletic:{fortime:3,amrap:2,emom:3,intervals:2,ladder:2,chipper:1},newbie:{fortime:2,amrap:0,emom:3,intervals:3,ladder:0,chipper:0},muscle:{fortime:3,amrap:2,emom:3,intervals:1,ladder:3,chipper:1},fat:{fortime:2,amrap:3,emom:1,intervals:3,ladder:1,chipper:2}};
 // first 6 weeks for a brand-new trainee: simple, self-paced formats only
 const isNewbie=k=>S.profile.fitness==='new'&&weekIndex(k)<6;
-const fmtW=k=>FMT_W[isNewbie(k)?'newbie':S.profile.goal]||{};
+const fmtW=k=>{if(isNewbie(k))return FMT_W.newbie;const J=jFor(k);return J?J.fmt:FMT_W[S.profile.goal]||{}};
 function formatDraw(k,reroll){const r=rng(hash(k+':'+reroll)),keys=Object.keys(FORMATS),W=fmtW(k),ws=keys.map(x=>W[x]??2);let x=r()*ws.reduce((a,b)=>a+b,0),f=keys[keys.length-1];for(let i=0;i<keys.length;i++){x-=ws[i];if(x<0){f=keys[i];break}}return {r,f}}
 const DELOAD_OFF=new Set(['amrap','ladder','chipper']);
 function finalFormat(k,reroll,depth=0){
@@ -837,7 +841,7 @@ function generate(k,reroll=0){
  const rounds=capItems(items,{f,mins,dl,newbie,work});
  const fi=items.find(it=>PAT_MUSCLE[it.pat]&&it.pat!=='core'&&it.pat!=='pull');
  const fin=fi&&!recovery&&!deload?{id:fi.id,n:fi.n,u:fi.u==='sec'&&f==='intervals'?(exById(fi.id)?.ex.u||'reps'):fi.u,pat:fi.pat}:null;
- const tfin=fin&&rng(hash(k+':tf:'+reroll))()<.35?pickTfin(k,items,loc):null;
+ const tfin=fin&&rng(hash(k+':tf:'+reroll))()<((jFor(k)||{}).tfin??.35)?pickTfin(k,items,loc):null;
  const out={type,title:T.title,format:f,deload,recovery,loc,mins,rounds,items,fin:tfin?null:fin};if(tfin)out.tfin=tfin;if(work)out.work=work;
  return GEN[ck]=nameIt(out);
 }
@@ -909,8 +913,9 @@ const tmplFocus=T=>{const s=T.slots||[];const pu=s.some(p=>['push','vpush','dip'
 const SIG_FITS={push:['push','upper'],pull:['pull'],upper:['push','pull','upper'],lower:['lower'],full:['full','cond']};
 // one signature a week from week 2. The day rotates through your training days so no muscle group loses its session every week.
 function sigSlot(k){
- const wi=weekIndex(k);if(wi<1||isDeload(k))return false;
+ const wi=weekIndex(k);if((wi<1&&!isHell(k))||isDeload(k))return false;
  const ci=getDay(k).checkin;if(ci&&ci.score<=RECOVERY_AT)return false;
+ if(isHell(k))return !!TEMPLATES[typeOf(k)].slots;
  const mon=monOf(k),D=[];
  for(let i=0;i<7;i++){const d=addDays(mon,i);if(d>=S.profile.start&&TEMPLATES[typeOf(d)].slots)D.push(d)}
  return D.length>0&&D[wi%D.length]===k;
@@ -922,12 +927,20 @@ function sigPick(k,{slotCheck=true}={}){
  const fitsDay=sg=>fits.includes(sg.focus)||(!yf&&tf==='push'&&['full','cond'].includes(sg.focus));
  const el=SIGS.filter(sg=>fitsDay(sg)&&sigOk(sg,loc)&&sg.lvl<=tier+1&&(sg.id!=='uplink'||loc==='yard'));
  if(!el.length)return null;
+ const J=jFor(k),pref=sg=>{const i=J&&J.sigPref?J.sigPref.indexOf(sg.focus):-1;return i<0?9:i};
+ if(isHell(k)){
+  // Hell Week: a different signature each day, retests first so you chase your records
+  const mon=monOf(k),used=new Set();for(let d=mon;d<k;d=addDays(d,1)){const T2=TEMPLATES[typeOf(d)];if(!T2.slots)continue;const w=getDay(d).workout||(sigPick(d)?{signature:sigPick(d).id}:null);if(w&&w.signature)used.add(w.signature)}
+  const left=el.filter(sg=>!used.has(sg.id));const pool=left.length?left:el;
+  const re=pool.filter(sg=>sigAttempts(sg.id,k).some(a=>a.k<k));const P=(re.length?re:pool).sort((a,b)=>pref(a)-pref(b)||a.lvl-b.lvl);
+  return P[Math.floor(rng(hash('hell:'+k))()*Math.min(2,P.length))];
+ }
  const seen=el.filter(sg=>sigAttempts(sg.id,k).some(a=>a.k<k)),fresh=el.filter(sg=>!seen.includes(sg));
  const lastK=sg=>(sigAttempts(sg.id,k).find(a=>a.k<k)||{k:''}).k;
  const due=seen.filter(sg=>daysBetween(lastK(sg),k)>=21).sort((a,b)=>lastK(a)<lastK(b)?-1:1);
  // alternate: even weeks retest something you've done (beat your time), odd weeks try something new
  const retest=weekIndex(k)%2===0&&due.length;
- const pool=retest?due.slice(0,2):fresh.length?fresh.sort((a,b)=>a.lvl-b.lvl).slice(0,3):due.length?due.slice(0,2):el;
+ const pool=retest?due.slice(0,2):fresh.length?fresh.sort((a,b)=>pref(a)-pref(b)||a.lvl-b.lvl).slice(0,3):due.length?due.slice(0,2):el;
  return pool[Math.floor(rng(hash('sig:'+k))()*pool.length)];
 }
 function sigFor(k){const sg=sigPick(k);return sg?buildSig(sg,sigVersionIdx(sg,k),k):null}
@@ -975,7 +988,8 @@ function skillSteps(k){const t=skillTrackFor(k);if(!t)return [];const s=skillSte
  for(let j=1;j<=s.sets;j++){out.push([`Set ${j}/${s.sets} · ${amtText(s.amt,s.e.u)} ${s.e.n}`,work]);if(j<s.sets)out.push(['Rest',s.rest])}return out}
 function vSkill(k,d){
  const t=skillTrackFor(k);if(!t)return '';const T=SKILL_TRACKS[t],s=skillStep(t),st=skillState(t),done=d.skill&&d.skill.t===t;
- return `<div class="box"><details ${done?'':''}><summary><span>Skill · ${esc(T.n.toLowerCase())} · step ${s.i+1}/${s.n}</span><span class="tag ${done?'ok':''}" style="margin-left:auto">${done?(d.skill.res==='clean'?'clean':'logged'):'optional'}</span></summary>
+ const must=(jFor(k)||{}).skillFirst;
+ return `<div class="box"><details ${must&&!done?'open':''}><summary><span>Skill · ${esc(T.n.toLowerCase())} · step ${s.i+1}/${s.n}</span><span class="tag ${done?'ok':must?'a':''}" style="margin-left:auto">${done?(d.skill.res==='clean'?'clean':'logged'):must?'part of the plan':'optional'}</span></summary>
  <div class="small muted">Technique while you are fresh, before the workout. Goal: ${esc(T.goal)}. Two clean sessions on a step unlock the next one${st.c?` (1 of 2 done)`:''}.</div>
  <div class="list"><div class="row"><span class="amt">3×${amtText(s.amt,s.e.u)}</span><span class="nm">${esc(s.e.n)}<small>${esc(s.e.c||'')} Rest ${s.rest}s between sets. Stop the set if form slips.</small></span><span class="pat">SKILL</span></div></div>
  ${done?`<div class="small muted">Logged: ${d.skill.res==='clean'?'all sets clean':'struggled'}${d.skill.msg?' · '+esc(d.skill.msg):''}</div>`:`<div class="btns"><button data-a="seq" data-v="skill">▶ Guided sets</button><button class="ghost" data-a="skilllog" data-v="clean">✓ All clean</button><button class="ghost" data-a="skilllog" data-v="hard">Struggled</button></div>`}
@@ -1005,6 +1019,95 @@ function pickTfin(k,items,loc){
 }
 const tfinKey=f=>f.id+'*'+f.amt;
 function tfinBest(f,exceptK){let b=null;for(const dk of allDayKeys()){if(dk===exceptK)continue;const w=getDay(dk).workout;if(w&&w.tfin&&w.result&&w.result.tfin!=null&&tfinKey(w.tfin)===tfinKey(f)&&(b==null||w.result.tfin<b.v))b={v:w.result.tfin,k:dk}}return b}
+/* ============ journeys ============
+   Structured programs on top of the daily generator. A journey sets the format mix, how fast
+   levels climb, finishers and benchmarks, schedules test weeks, and 12-week ones end in Hell Week. */
+const JOURNEYS={
+ foundation:{n:'FOUNDATION',weeks:6,best:'new or coming back',d:'Six weeks to build the base. Steady formats, clean technique, your first benchmarks, and a test week at the end to see how far you came.',
+  fmt:{fortime:3,amrap:1,emom:3,intervals:3,ladder:0,chipper:1},tests:[1,6],hell:false,tfin:.25,sigPref:['full','lower','push','pull'],
+  goal:'Finish all 6 weeks and beat your week-1 numbers on every test.',bul:['Mostly For Time, EMOM and intervals','Gentler finishers','Test week 6']},
+ fatburn:{n:'FAT BURN',weeks:12,best:'losing fat, keeping muscle',d:'Dense circuits: more AMRAPs, intervals and chippers, for-time finishers most days, and conditioning benchmarks. Pair it with your protein and walk goals.',
+  fmt:{fortime:2,amrap:3,emom:1,intervals:3,ladder:1,chipper:2},tests:[1,6,12],hell:true,tfin:.6,sigPref:['cond','full','lower','push','pull'],
+  goal:'Lose fat while holding strength. Watch your waist on the Body tab and THE FURNACE score.',bul:['More AMRAPs, intervals, chippers','For-time finishers most days','Hell Week finale']},
+ strength:{n:'CALISTHENICS STRENGTH',weeks:12,best:'pull-ups, push-up and pistol progress',d:'Harder progressions sooner, EMOMs and ladders for quality reps, and a skill block every session. Built around pull-ups, one-arm push-up steps and pistols.',
+  fmt:{fortime:2,amrap:1,emom:4,intervals:1,ladder:3,chipper:0},tests:[1,6,12],hell:true,tfin:.2,lvlAt:1.2,skillFirst:true,sigPref:['pull','push','upper','lower','full'],
+  goal:'10 strict pull-ups, archer push-ups, and a step up the pistol track.',bul:['Levels climb faster','Skill block every session','EMOMs and ladders','Hell Week finale']},
+ hybrid:{n:'HYBRID',weeks:12,best:'running and strength together',d:'Four workouts, two run days and a mobility day each week. Benchmarks lean toward conditioning, and THE MILE is the main test.',
+  fmt:{fortime:3,amrap:2,emom:2,intervals:3,ladder:1,chipper:2},tests:[1,6,12],hell:true,tfin:.4,sigPref:['cond','full','lower','push','pull'],plan:['mobility','workout','workout','run','workout','workout','run'],
+  goal:'Get faster on THE MILE while holding your strength numbers.',bul:['Switches your week to 4 workouts + 2 runs','Conditioning benchmarks','Hell Week finale']}
+};
+const jCur=()=>{const j=S.profile.journey;return j&&JOURNEYS[j.id]?j:null};
+const jWeek=(k,j=jCur())=>j?Math.floor(daysBetween(monOf(j.start),k)/7)+1:0;
+function jFor(k){const j=jCur();if(!j||k<j.start)return null;const w=jWeek(k,j),J=JOURNEYS[j.id];return w>=1&&w<=J.weeks?J:null}
+const isHell=k=>{const J=jFor(k);return !!(J&&J.hell&&jWeek(k)===J.weeks)};
+const isTestWeek=k=>{const J=jFor(k);return !!(J&&J.tests.includes(jWeek(k)))};
+const jDoneAll=()=>{const j=jCur();return !!j&&jWeek(TODAY(),j)>JOURNEYS[j.id].weeks};
+function jPhase(k){
+ const J=jFor(k);if(!J)return null;const w=jWeek(k);
+ if(isHell(k))return 'hell week';if(w===1)return 'assess + build';if(isTestWeek(k))return isDeload(k)?'deload + test':'test week';if(isDeload(k))return 'deload';
+ return J.weeks===6?'foundation':w<6?'build':'push';
+}
+function phaseLabel(k){
+ const J=jFor(k),wi=weekIndex(k)%6;
+ const t=J?`${J.n.toLowerCase()} · wk ${jWeek(k)}/${J.weeks} · ${jPhase(k)}`:`week ${wi+1} of 6 · ${wi===5?'deload':wi>=3?'push':'build'} · pick a journey ›`;
+ return `<button class="phase lnk" data-a="plan">${esc(t)}</button>`;
+}
+// in a test week, a boss counts as due until you fight it that week
+function testDue(){const t=TODAY();if(!isTestWeek(t))return [];const mon=monOf(t);return BOSSES.filter(b=>b.id!=='mile'||S.profile.runMode!=='walk').filter(b=>!((S.profile.bosses||{})[b.id]||[]).some(e=>e.k>=mon))}
+function jBossRows(j){
+ return BOSSES.map(b=>{const all=(S.profile.bosses||{})[b.id]||[],since=all.filter(e=>e.k>=j.start),before=all.filter(e=>e.k<j.start);
+  const start=since[0]||before[before.length-1],best=since.length?since.reduce((m,e)=>m==null?e.v:(b.lower?Math.min(m,e.v):Math.max(m,e.v)),null):null;
+  if(!start)return `<div class="row"><span class="nm">${esc(b.n)}</span><span class="muted small">not tested</span></div>`;
+  const d=best!=null&&since.length>1?(b.lower?start.v-best:best-start.v):0;
+  return `<div class="row"><span class="nm">${esc(b.n)}<small>start ${esc(bossFmt(b,start.v))}</small></span><span class="amt" style="min-width:0;font-size:20px">${esc(bossFmt(b,best??start.v))}${d>0?` <span style="color:var(--ok);font-size:14px">▲${b.unit==='time'?fmt(d):d}</span>`:''}</span></div>`}).join('');
+}
+function vPlanWeek(mon){
+ const t=TODAY();
+ return `<div class="list">${Array.from({length:7},(_,i)=>{const k=addDays(mon,i),dt=parseKey(k),T=TEMPLATES[typeOf(k)],d=getDay(k);let what=T.title.toLowerCase(),nm='',mins='';
+  if(T.slots||(d.workout&&(d.workout.shared||d.workout.again))){const w=workoutFor(k);nm=w.name;what=w.signature?'★ signature · '+FOCUS_TXT[SIG_BY[w.signature].focus]:w.title.toLowerCase()+' · '+fmtL(w).toLowerCase();mins='~'+estimateMins(w)+'m'}
+  else if(T.run){nm=runFor(k).name;mins='~'+Math.round(seqSecs(runFor(k).steps)/60)+'m'}
+  else if(T.mob){nm=mobFor(k).name.split(' · ')[0];mins='~'+Math.round(seqSecs(mobFor(k).steps)/60)+'m'}
+  const st=dayDone(k)?'<span class="tag ok">done</span>':k===t?'<span class="tag a">today</span>':k<t&&k>=S.profile.start&&!isRest(k)?'<span class="tag">missed</span>':'';
+  return `<button class="row planday ${k===t?'now':''}" data-a="goto" data-v="${k}"><span class="pdd"><b>${DOW[dt.getDay()]}</b>${dt.getDate()}</span><span class="nm">${esc(nm||what)}<small>${esc(nm?what:'')}${mins?' · '+mins:''}</small></span>${st}</button>`}).join('')}</div>`;
+}
+function vPlan(){
+ const j=jCur(),t=TODAY();
+ if(!j)return `<div class="prompt">$ <i>rep</i> journey --list</div><button class="sm ghost" data-a="tab" data-v="today">‹ Today</button>
+ <div class="box"><div class="boxh"><h2>JOURNEYS</h2><span class="tag">free training</span></div><div class="small muted">A journey is a structured program on top of your daily workouts: a format mix for your goal, test weeks to measure progress, and a Hell Week finale. Starting one makes today Day 1 and begins with the assessment. Your log and XP stay.</div></div>
+ ${Object.entries(JOURNEYS).map(([id,J])=>`<div class="box"><div class="boxh"><h2>${J.n}</h2><span class="tag a">${J.weeks} weeks</span></div><div class="small" style="color:var(--amber)">&gt; best for ${esc(J.best)}</div><div class="small muted">${esc(J.d)}</div><div class="list small">${J.bul.map(b=>`<div class="row"><span class="nm">· ${esc(b)}</span></div>`).join('')}</div><div class="btns"><button class="pri" data-a="jstart" data-v="${id}">Start ${esc(J.n.toLowerCase())}</button></div></div>`).join('')}
+ <div class="box"><div class="boxh"><h2>THIS WEEK</h2></div>${vPlanWeek(addDays(monOf(t),(S.planWk||0)*7))}<div class="seg">${[['0','This week'],['1','Next week']].map(([v,l])=>`<button class="sm ${String(S.planWk||0)===v?'on':''}" data-a="planwk" data-v="${v}">${l}</button>`).join('')}</div></div>`;
+ const J=JOURNEYS[j.id],cw=Math.min(jWeek(t,j),J.weeks+1),done=jDoneAll();
+ const cells=Array.from({length:J.weeks},(_,i)=>{const w=i+1,k=addDays(monOf(j.start),i*7),tag=J.hell&&w===J.weeks?'H':J.tests.includes(w)?'T':isDeload(k)?'D':'';return `<span class="jc ${w<cw?'past':w===cw?'now':''} ${tag?'m'+tag:''}"><b>${w}</b><i>${tag||'·'}</i></span>`}).join('');
+ const mon=addDays(monOf(t),(S.planWk||0)*7);
+ let sessions=0,planned=0;for(let k=j.start;k<=t&&k<addDays(monOf(j.start),J.weeks*7);k=addDays(k,1)){if(!isRest(k)){planned++;if(dayDone(k))sessions++}}
+ return `<div class="prompt">$ <i>rep</i> journey --status</div><button class="sm ghost" data-a="tab" data-v="today">‹ Today</button>
+ <div class="box hot"><div class="boxh"><h2>${J.n}</h2><span class="tag a">${done?'complete':`week ${cw} of ${J.weeks}`}</span></div>
+ <div class="small" style="color:var(--amber)">&gt; ${esc(done?'Journey complete. Compare your tests below, then pick the next one.':J.goal)}</div>
+ <div class="jtl">${cells}</div><div class="small muted">T test week · D deload · H Hell Week (every session a signature)</div>
+ <div class="grid2"><div class="stat"><b>${sessions}/${planned}</b><span>sessions done</span></div><div class="stat"><b>${Math.max(0,J.weeks-cw+(done?0:1))}</b><span>weeks left</span></div></div>${done?'':`<div class="small" style="color:var(--accent)">&gt; now: ${esc(jPhase(t))}</div>`}</div>
+ ${done?'':`<div class="box"><div class="boxh"><h2>${S.planWk?'NEXT WEEK':'THIS WEEK'}</h2>${isHell(mon)?'<span class="tag am">hell week</span>':isTestWeek(mon)?'<span class="tag am">test week</span>':''}</div>${vPlanWeek(mon)}<div class="seg">${[['0','This week'],['1','Next week']].map(([v,l])=>`<button class="sm ${String(S.planWk||0)===v?'on':''}" data-a="planwk" data-v="${v}">${l}</button>`).join('')}</div></div>`}
+ <div class="box"><div class="boxh"><h2>TESTS</h2><span class="tag">start → best</span></div><div class="list">${jBossRows(j)}</div><div class="small muted">Test weeks: ${J.tests.join(', ')}. Fight each boss once that week, fresh, on a rest or mobility day if you can.</div></div>
+ <div class="btns">${done?Object.entries(JOURNEYS).map(([id,X])=>`<button class="${id===j.id?'ghost':'pri'} sm" data-a="jstart" data-v="${id}">${id===j.id?'Repeat':'Start'} ${esc(X.n.toLowerCase())}</button>`).join(''):''}<button class="ghost sm" data-a="jend">${done?'Back to free training':'End this journey'}</button></div>`;
+}
+function jStart(id){
+ const J=JOURNEYS[id];if(!J)return;
+ const cur=jCur(),msg=`Start ${J.n} (${J.weeks} weeks) today?\n\nToday becomes Day 1 and starts with the assessment.${J.plan?' Your week switches to 4 workouts, 2 runs and a mobility day.':''}${cur?`\nThis ends ${JOURNEYS[cur.id].n}.`:''} Your log and XP stay.`;
+ if(!confirm(msg))return;
+ editProfile(p=>{
+  if(p.journey&&JOURNEYS[p.journey.id])p.jHist=[...(p.jHist||[]),{id:p.journey.id,start:p.journey.start,end:addDays(TODAY(),-1),done:jWeek(TODAY(),p.journey)>JOURNEYS[p.journey.id].weeks}].slice(-20);
+  p.journey={id,start:TODAY()};p.start=TODAY();delete p.assessed;
+  if(J.plan){keepPlanHistory(p);p.plan=[...J.plan];p.week=planToWeek(J.plan);delete p.weekPreset;if(!p.runMode)p.runMode='run'}
+ });
+ S.tab='today';S.view=TODAY();S.flash=`> ${J.n} started. Day 1: take the assessment, then today's workout.`;render();scrollTo(0,0);
+}
+function jEnd(){
+ const j=jCur();if(!j)return;const J=JOURNEYS[j.id],done=jDoneAll();
+ if(!done&&!confirm(`End ${J.n} early? Your log stays, workouts go back to free training.`))return;
+ editProfile(p=>{p.jHist=[...(p.jHist||[]),{id:j.id,start:j.start,end:TODAY(),done}].slice(-20);delete p.journey});
+ S.flash=done?`> ${J.n} complete and filed.`:`> ${J.n} ended.`;render();scrollTo(0,0);
+}
+// hell week: all training days of the journey's final week done
+function hellDone(e){const J=JOURNEYS[e.id];if(!J||!J.hell)return false;const s=addDays(monOf(e.start),(J.weeks-1)*7);const days=Array.from({length:7},(_,i)=>addDays(s,i)).filter(k=>TEMPLATES[typeOf(k)].slots);return days.length>0&&days.every(dayDone)}
 function workoutFor(k){const d=getDay(k);return d.workout||generate(k,d.reroll||0)}
 const WALKS=[
  {name:'BRISK WALK',desc:'5 min easy, 20 min at a pace where talking takes effort, 5 min easy.',steps:[['Easy walk',300],['Brisk walk',1200],['Easy walk',300]]},
@@ -1040,7 +1143,7 @@ function progress(items,rating,k=TODAY(),w={}){
    const d=rating==='easy'?.08:rating==='right'?.02:-.1;
    L.v=Math.round(Math.min(1.5,Math.max(.6,L.v+d))*100)/100;
    const pct=`volume ${Math.round(L.v*100)}%`;
-   if(L.v>=1.3){
+   if(L.v>=((jFor(k)||{}).lvlAt||1.3)){
     let j=L.i+1;while(j<P.ladder.length&&!(P.ladder[j].q||[]).every(e=>p.equip[e]))j++;
     const since=L.t?daysBetween(L.t,k):99,gate=pat==='pull'?PULL_GATE[j]||0:0;
     if(j>=P.ladder.length){if(!L.top){L.top=1;msgs.push(`■ ${P.label}: top of your ladder with the gear you have. Reps keep climbing; heavier gear unlocks more.`)}else msgs.push(`+ ${P.label}: ${pct}`)}
@@ -1071,7 +1174,7 @@ const BOSS_DUE=28;
 const bossFmt=(b,v)=>v==null?'—':b.unit==='time'?fmt(v):b.unit==='sec'?`${v}s`:`${v}`;
 function bossBest(id){const b=BOSSES.find(x=>x.id===id),a=(S.profile.bosses||{})[id]||[];if(!a.length)return null;return a.reduce((m,e)=>m==null?e.v:(b.lower?Math.min(m,e.v):Math.max(m,e.v)),null)}
 function bossLast(id){const a=(S.profile.bosses||{})[id]||[];return a.length?a[a.length-1]:null}
-function bossesDue(){return BOSSES.filter(b=>{const l=bossLast(b.id);return !l||daysBetween(l.k,TODAY())>=BOSS_DUE})}
+function bossesDue(){const tw=new Set(testDue().map(b=>b.id));return BOSSES.filter(b=>{if(tw.has(b.id))return true;const l=bossLast(b.id);return !l||daysBetween(l.k,TODAY())>=BOSS_DUE})}
 const TREE=[
  {id:'pull',n:'PULL',nodes:[
   {id:'pl1',n:'Dead hang 30s',r:{boss:'hang',v:30}},
@@ -1269,7 +1372,9 @@ const ACH=[
  {id:'sig1',n:'BENCHMARKED',d:'Finish a signature workout',xp:75,t:h=>h.sigs>=1},
  {id:'sig5',n:'COLLECTOR',d:'Finish 5 different signature workouts',xp:250,t:h=>h.sigKinds>=5},
  {id:'sigfull',n:'FULL VERSION',d:'Finish the full version of a signature',xp:200,t:h=>h.sigFull>=1},
- {id:'sigpr',n:'FASTER BUILD',d:'Beat a signature time 3 times',xp:200,t:h=>h.sigPRs>=3}
+ {id:'sigpr',n:'FASTER BUILD',d:'Beat a signature time 3 times',xp:200,t:h=>h.sigPRs>=3},
+ {id:'journey1',n:'SHIPPED',d:'Finish a journey',xp:500,t:h=>h.jDone>=1},
+ {id:'hell1',n:'SURVIVED HELL',d:'Finish every session of a Hell Week',xp:500,t:h=>h.hells>=1}
 ];
 // rough lifetime rep count for one logged move
 function estReps(w,it){
@@ -1291,7 +1396,7 @@ function computeHero(){
  if(HERO)return HERO;
  const g=S.profile.goals,keys=allDayKeys(),t=TODAY();
  const attr={STR:0,END:0,CORE:0,MOB:0,DISC:0};
- const finSeen={};const sigBest={},sigKinds=new Set(),tfSeen={};const h={sigs:0,sigPRs:0,sigFull:0,sigKinds:0,fins:0,finPRs:0,comebacks:0,perfect:0,xp:0,reps:0,burpees:0,workouts:0,runs:0,mobs:0,proteinDays:0,weighIns:0,hardOnes:0,outSprint:false,locs:0,waterRun:0,perDay:{}};
+ const finSeen={};const sigBest={},sigKinds=new Set(),tfSeen={};const jAll=[...(S.profile.jHist||[]),...(jCur()?[{...jCur(),done:jDoneAll()}]:[])];const h={sigs:0,sigPRs:0,sigFull:0,sigKinds:0,fins:0,finPRs:0,comebacks:0,perfect:0,xp:0,reps:0,burpees:0,workouts:0,runs:0,mobs:0,proteinDays:0,weighIns:0,hardOnes:0,outSprint:false,locs:0,waterRun:0,perDay:{}};
  const locs=new Set();const normLoc=l=>l==='out'?'yard':(l||'home');let wr=0,prev=null;
  const weighWeeks=new Set();
  for(const k of keys){
@@ -1317,7 +1422,7 @@ function computeHero(){
   {const w=d.workout;if(w&&w.fin&&w.result&&w.result.fin!=null){h.fins++;x+=25;const id=w.fin.id;if(finSeen[id]!=null&&w.result.fin>finSeen[id]){h.finPRs++;x+=50}finSeen[id]=Math.max(finSeen[id]??-1,w.result.fin)}}
   h.perDay[k]=x;h.xp+=x;
  }
- h.locs=locs.size;h.sigKinds=sigKinds.size;
+ h.locs=locs.size;h.sigKinds=sigKinds.size;h.jDone=jAll.filter(e=>e.done).length;h.hells=jAll.filter(hellDone).length;
  h.ladderUps=(S.profile.log||[]).filter(e=>/▲/.test(e.m)).length;attr.STR+=h.ladderUps*10;
  // streak with freeze tokens: a token is earned every 7 straight days (max 2) and covers one missed day
  let cur=0,best=0,tok=0;const frozen=new Set();const first=keys.find(dayDone);
@@ -1368,7 +1473,7 @@ function render(){
  const m=$('#main');
  if(!S.loaded){m.innerHTML=`<div class="box"><div class="prompt">$ <i>rep</i> --boot</div><div class="muted">Loading your log…</div></div>`;return}
  {const h=computeHero(),nm=heroName();$('#lvl').textContent=`${nm?nm+' · ':''}lvl ${h.L} · ${h.title} · ${h.xp-xpAt(h.L)}/${xpAt(h.L+1)-xpAt(h.L)} xp`;$('#hav').innerHTML=S.profile.hero?avatarSVG(34,S.profile.hero,h.L):''}
- m.innerHTML=({today:vToday,stats:vStats,body:vBody,hero:vHero,setup:vSetup}[S.tab])();
+ m.innerHTML=({today:vToday,stats:vStats,body:vBody,hero:vHero,setup:vSetup,plan:vPlan}[S.tab]||vToday)();
  $('#sheet').innerHTML=vSheet();
  renderCTA();
 }
@@ -1386,12 +1491,15 @@ function vToday(){
  const k=S.view,dt=parseKey(k),type=typeOf(k),T=TEMPLATES[type],d=getDay(k),isToday=k===TODAY();
  const dayN=daysBetween(S.profile.start,k)+1;
  const wi=weekIndex(k)%6;
- let h=`<div class="prompt">$ <i>rep</i> today --day ${dayN>0?dayN:'—'}<span class="phase">week ${wi+1} of 6 · ${wi===5?'deload':wi>=3?'push':'build'}</span></div>
+ let h=`<div class="prompt">$ <i>rep</i> today --day ${dayN>0?dayN:'—'}${phaseLabel(k)}</div>
  ${weekStrip(k)}
  <div class="daynav"><h1>${DOW[dt.getDay()]} ${dt.getDate()} ${MON[dt.getMonth()]}${isToday?' <span class="tag a">today</span>':''}</h1>${isToday?'':'<button class="sm" data-a="day" data-v="0">Today</button>'}</div>`;
  {const hh=computeHero();if(isToday&&hh.streak>0){const nx=MILESTONES.find(m=>m>hh.streak);h+=`<div class="streakline">▲ ${hh.streak}-day streak${nx?` · ${nx-hh.streak} to ${nx}`:''}${hh.tokens?` · freezes ${'▣'.repeat(hh.tokens)}`:''}</div>`}}
  {const c=S.profile.commit;if(isToday&&c&&(c.time||c.place)&&!T.rest)h+=`<div class="commit">&gt; ${esc([c.time?fmt12(c.time):'',c.place,c.after?'after '+c.after:''].filter(Boolean).join(' · '))}</div>`}
  const notes=[];
+ if(isToday&&jDoneAll())notes.push(`<button class="bossbar" data-a="plan">■ ${esc(JOURNEYS[jCur().id].n)} complete · see your results ›</button>`);
+ if(isToday&&isHell(k)&&!dayDone(k))notes.push(`<div class="box quest"><div class="boxh"><h2>HELL WEEK</h2><span class="tag am">final week</span></div><div class="small">Every session this week is a signature workout. Retests first, so every day is a shot at a record. Eat, sleep, warm up properly.</div></div>`);
+ if(isToday&&isTestWeek(k)&&testDue().length)notes.push(`<button class="bossbar" data-a="gotoboss">⚔ Test week · ${testDue().length} boss${testDue().length>1?'es':''} to fight this week ›</button>`);
  if(isToday&&!T.rest&&!dayDone(k)&&missedBefore(k)&&!computeHero().frozen.has(prevPlanned(k)))notes.push(`<div class="box quest"><div class="boxh"><h2>COMEBACK QUEST</h2><span class="tag am">+100 XP</span></div><div class="small">Missed your last planned day. Any session today earns +100 XP. Showing up beats being perfect.</div>${T.slots&&dayMins(k)>10&&!(d.workout&&d.workout.result)?'<button class="sm" data-a="setmins" data-v="10">Make it a 10-minute version</button>':''}</div>`);
  if(isToday&&window.REPSH_APP&&allDayKeys().length>=3&&(!S.profile.lastExport||daysBetween(S.profile.lastExport,TODAY())>=14))notes.push(`<button class="bossbar" data-a="export">⇩ Back up your log · last backup ${S.profile.lastExport?daysBetween(S.profile.lastExport,TODAY())+' days ago':'never'} ›</button>`);
  if(S.shareFallback)h+=`<div class="box"><textarea readonly id="share-out">${esc(S.shareFallback)}</textarea><button class="sm" data-a="sharedone">Done</button></div>`;
@@ -1907,6 +2015,10 @@ const ACT={
   S.bossDraft=null;S.flash=`> ${B.n}: ${bossFmt(B,v)}. ${pr}\n${m.join('\n')}`;render();scrollTo(0,0)},
  tfintimer:()=>{const w=workoutFor(S.view);if(!w.tfin)return;if(S.form===S.view){const pr=S.pendingResult=S.pendingResult||{},v=id=>$('#'+id)?.value;const tm=parseTime(v('r-time'));if(tm!=null)pr.time=tm;if(v('r-rounds'))pr.rounds=+v('r-rounds');if(v('r-reps'))pr.reps=+v('r-reps');if(v('r-fin'))pr.fin=+v('r-fin');if(v('r-notes'))pr.notes=v('r-notes')}openTimer({kind:'boss',k:S.view,boss:{id:'tfin',n:'FINISHER',test:`${amtText(w.tfin.amt,w.tfin.u)} ${short(w.tfin.n)} for time`,unit:'time',sw:true},total:0,label:'FINISHER',rounds:0})},
  skilllog:b=>skillLog(b.dataset.v),
+ plan:()=>{S.tab='plan';S.planWk=0;S.flash='';render();scrollTo(0,0)},
+ planwk:b=>{S.planWk=+b.dataset.v;render()},
+ jstart:b=>jStart(b.dataset.v),
+ jend:()=>jEnd(),
  assesstimer:b=>assessTimer(b.dataset.v),
  assesslog:()=>assessLog(),
  assessskip:()=>{editProfile(p=>{p.assessed='skip'});S.flash='> Skipped. Your setup answers set your levels. Retake it any time from Hero → Bosses.';render()},
@@ -2402,6 +2514,7 @@ const LOOT=[
  {id:'bandana',slot:'head',n:'Comeback bandana',c:'var(--bad)',ach:'comeback'},
  {id:'visor',slot:'head',n:'Runner visor',c:'var(--ok)',ach:'run5'},
  {id:'crown',slot:'crown',n:'Root crown',c:'var(--amber)',lv:20},
+ {id:'horns',slot:'crown',n:'Hell Week horns',c:'var(--bad)',ach:'hell1'},
  {id:'wrist',slot:'wrist',n:'Wristbands',c:'var(--amber)',lv:12},
  {id:'chalk',slot:'wrist',n:'Grip chalk',c:'#f4efe4',boss:'hang'},
  {id:'belt',slot:'belt',n:'Lifting belt',c:'#8a5a32',lv:12},
@@ -2456,7 +2569,7 @@ function avatarSVG(px=96,o={},L=1,opt={}){
  if(I('shirt')&&I('shirt').id==='tank')for(let r=7;r<=10;r++)for(const x of [2,9])if(rows[r][x]==='T')rows[r][x]='S';
  if(I('wrist')){col.W=I('wrist').c;for(const x of [1,10])setPx(rows,up(x)?5:10,x,'W')}
  if(I('belt')){col.G=I('belt').c;rows[12]=rows[12].map(c=>c==='P'?'G':c);if(I('belt').id==='champ'){rows[12][5]='K';rows[12][6]='K'}}
- if(I('crown'))rows[0]="...Y.YY.Y...".split('');
+ if(I('crown')){col.Y=I('crown').c;if(I('crown').id==='horns'){setPx(rows,0,2,'Y');setPx(rows,0,9,'Y');setPx(rows,1,3,'Y');setPx(rows,1,8,'Y')}else rows[0]="...Y.YY.Y...".split('')}
  if(I('back')){col.C=I('back').c;for(let r=7;r<=14;r++)for(const x of [1,2,9,10])if(rows[r][x]==='.')rows[r][x]='C'}
  if(pose==='rest'){rows[4]=rows[4].map(c=>c==='E'?'S':c);}
  col.Z='var(--dim)';
