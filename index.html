@@ -246,7 +246,10 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .report{border-color:var(--amber)}
 .hav{margin-left:auto;display:flex;align-items:center}.hav+.status{margin-left:8px}
 .avatar{image-rendering:pixelated;flex:none}
-.avatar.aura{filter:drop-shadow(0 0 6px var(--amber))}
+.avatar.aura{filter:drop-shadow(0 0 6px var(--amber))}.avatar.glow{filter:drop-shadow(0 0 6px var(--ok))}
+.loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
+.slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
+.lootprev{display:flex;gap:14px;align-items:center}
 .tag-btn{margin-left:auto;min-height:32px;padding:4px 10px;font-size:11.5px}
 .notes .more{margin-top:-4px}.notes .more .bossbar{margin-top:8px}
 .hm i.r{background:transparent;border-style:dashed}
@@ -1149,14 +1152,15 @@ function computeHero(){
 }
 // run an edit and report XP, level-ups and unlocks it caused
 function withXP(fn,{always=false,quiet=false}={}){
- const a=computeHero(),before={xp:a.xp,L:a.L,ach:new Set(a.ach),sk:new Set(a.skills)};
+ const a=computeHero(),before={xp:a.xp,L:a.L,ach:new Set(a.ach),sk:new Set(a.skills),loot:lootSet(a)};
  fn();clearGen();const b=computeHero(),msgs=[];
  const gain=b.xp-before.xp;
  if(gain>0&&(always||gain>=15))msgs.push(`+${gain} XP`);
  if(b.L>before.L)msgs.push(`LEVEL UP → ${b.L} · ${b.title}`);
  for(const id of b.skills)if(!before.sk.has(id)&&!(S.profile.base||[]).includes(id)){const N=ALL_NODES.find(x=>x.id===id);msgs.push(`SKILL UNLOCKED ${N.n} (+${100*N.tier} XP)`)}
  for(const id of b.ach)if(!before.ach.has(id)){const A=ACH.find(x=>x.id===id);msgs.push(`UNLOCKED ${A.n} (+${A.xp} XP)`)}
- if(!quiet&&msgs.some(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED/.test(m)))setTimeout(()=>celebrate(msgs),80);
+ for(const id of lootSet(b))if(!before.loot.has(id))msgs.push(`LOOT ${LOOT_BY[id].n} · equip it on Hero`);
+ if(!quiet&&msgs.some(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED|^LOOT/.test(m)))setTimeout(()=>celebrate(msgs),80);
  return msgs;
 }
 function streak(){return computeHero().streak}
@@ -1488,6 +1492,14 @@ function vBosses(){
  }
  return out;
 }
+function vLoadout(h){
+ const g=loadout(h),have=lootSet(h);
+ return `<div class="box"><div class="boxh"><h2>LOADOUT</h2><span class="tag">${have.size}/${LOOT.length} loot</span></div>
+ <div class="lootprev">${avatarSVG(88,S.profile.hero||{},h.L)}<div class="small muted">Earn gear from levels, achievements and boss fights. Tap to equip. Dashed pieces are still locked.</div></div>
+ ${SLOTS.map(([sl,lab])=>{const its=LOOT.filter(x=>x.slot===sl);
+  return `<div class="slotrow"><span>${lab}</span><div class="loot">${NEEDS_ITEM.has(sl)?'':`<button class="sm ${g[sl]?'':'on'}" data-a="gear" data-p="${sl}" data-v="">none</button>`}${its.map(it=>have.has(it.id)?`<button class="sm ${g[sl]===it.id?'on':''}" data-a="gear" data-p="${sl}" data-v="${it.id}">${esc(it.n)}</button>`:`<button class="sm lock ${S.lootHint===it.id?'on':''}" data-a="gearlock" data-v="${it.id}" aria-label="${esc(it.n)}, locked">□ ${esc(it.n)}</button>`).join('')}${its.some(it=>it.id===S.lootHint)?`<div class="small" style="color:var(--amber);width:100%">&gt; unlock: ${esc(lootReq(LOOT_BY[S.lootHint]))}</div>`:''}</div></div>`}).join('')}
+ </div>`;
+}
 function vCharacter(){
  const h=computeHero(),need=xpAt(h.L+1)-xpAt(h.L),have=h.xp-xpAt(h.L);
  const bar=(pct,cls='')=>`<div class="bar ${cls}"><i style="width:${Math.round(Math.min(1,pct)*100)}%"></i></div>`;
@@ -1495,6 +1507,7 @@ function vCharacter(){
  <div class="box hot hero"><div class="lvlrow">${avatarSVG(104,S.profile.hero||{},h.L)}<div class="lvlnum">${h.L}</div><div class="lvlinfo">${heroName()?`<div class="small">${esc(heroName())}</div>`:""}<div class="t">${esc(h.title)}</div><div class="small muted">${have} / ${need} XP to level ${h.L+1} · ${h.xp.toLocaleString()} total</div>${bar(have/need)}</div></div>
  <div class="grid3"><div class="stat"><b>${h.streak}</b><span>streak</span></div><div class="stat"><b>${h.best}</b><span>best</span></div><div class="stat"><b>${'▣'.repeat(h.tokens)}${'□'.repeat(2-h.tokens)}</b><span>freezes</span></div></div>
  <div class="small muted">Every 7 days in a row earns a streak freeze (hold up to 2). A freeze covers one missed day automatically.</div></div>
+ ${vLoadout(h)}
  <div class="box"><div class="boxh"><h2>ATTRIBUTES</h2></div>${ATTRS.map(([k,n,src])=>{const a=h.attr[k];return `<div class="attr"><span class="ak">${k}</span><div class="ab"><div class="an"><span>${n}</span><span class="muted">lv ${a.lv}</span></div>${bar(a.pct)}<small>${src}</small></div></div>`}).join('')}</div>
  <div class="box"><div class="grid3"><div class="stat"><b>${h.reps.toLocaleString()}</b><span>lifetime reps</span></div><div class="stat"><b>${h.burpees}</b><span>burpees</span></div><div class="stat"><b>${h.sessions}</b><span>sessions</span></div></div></div>
  <div class="box"><div class="boxh"><h2>ACHIEVEMENTS</h2><span class="tag">${h.ach.length}/${ACH.length}</span></div>
@@ -1622,6 +1635,8 @@ const ACT={
  fav:b=>{const id=b.dataset.v;editProfile(p=>{const f=new Set(p.fav||[]);f.has(id)?f.delete(id):f.add(id);p.fav=[...f]});render()},
  libg:b=>{S.libG=b.dataset.v;render()},
  libfav:()=>{S.libFav=!S.libFav;render()},
+ gear:b=>{const sl=b.dataset.p,v=b.dataset.v||null;editProfile(p=>{p.gear={...(p.gear||{}),[sl]:v}});render()},
+ gearlock:b=>{S.lootHint=S.lootHint===b.dataset.v?null:b.dataset.v;render()},
  ob:b=>{obRead();const f=b.dataset.f,v=b.dataset.v;S.ob[f]=['skin','hair','mins'].includes(f)?+v:v;if(f==='goal')suggestTargets(S.ob);drawSetup()},
  obnext:()=>{obRead();if(OB_STEPS[S.ob.i]==='name'&&!S.ob.name){S.ob.name='Hero'}S.ob.i=Math.min(OB_STEPS.length-1,S.ob.i+1);drawSetup();$('#setupflow').scrollTop=0},
  obback:()=>{obRead();S.ob.i=Math.max(0,S.ob.i-1);drawSetup()},
@@ -1994,12 +2009,12 @@ function calibrate(id,v){
 /* ============ celebrations ============ */
 // full-screen terminal readout after logging a workout; folds in any level-ups it caused
 function celebrateDone(w,r,xpm,prMsg){
- const h=computeHero(),lv=xpm.find(m=>/^LEVEL UP/.test(m)),big=xpm.filter(m=>/^SKILL UNLOCKED|^UNLOCKED/.test(m));
+ const h=computeHero(),lv=xpm.find(m=>/^LEVEL UP/.test(m)),big=xpm.filter(m=>/^SKILL UNLOCKED|^UNLOCKED|^LOOT/.test(m));
  const gain=(xpm.find(m=>/^\+\d+ XP/.test(m))||'').replace(/ XP/,'');
  const res=r.time!=null?fmt(r.time):r.rounds!=null?`${r.rounds}${r.reps?'+'+r.reps:''} ${w.format==='ladder'?'rungs':'rounds'}`:'complete';
  const felt={easy:'too easy',right:'just right',hard:'too hard'}[r.rating];
  const reps=w.items.reduce((a,it)=>a+estReps(w,it),0);
- const lines=[`$ ./log --workout ${w.name.toLowerCase()}`,`[${'#'.repeat(20)}] 100%`,`> result ...... ${res}${r.dnf?' (unfinished)':''}`,reps?`> reps ........ ${reps}`:'',`> felt ........ ${felt}`,gain?`> xp .......... ${gain}`:'',`> streak ...... ${h.streak} day${h.streak===1?'':'s'}`,prMsg?'> '+prMsg.toLowerCase():'',lv?'> '+lv.toLowerCase():'',...big.map(m=>'> '+m.replace(/^UNLOCKED /,'achievement ').toLowerCase())].filter(Boolean);
+ const lines=[`$ ./log --workout ${w.name.toLowerCase()}`,`[${'#'.repeat(20)}] 100%`,`> result ...... ${res}${r.dnf?' (unfinished)':''}`,reps?`> reps ........ ${reps}`:'',`> felt ........ ${felt}`,gain?`> xp .......... ${gain}`:'',`> streak ...... ${h.streak} day${h.streak===1?'':'s'}`,prMsg?'> '+prMsg.toLowerCase():'',lv?'> '+lv.toLowerCase():'',...big.map(m=>'> '+m.replace(/^UNLOCKED /,'achievement ').replace(/^LOOT /,'loot ').toLowerCase())].filter(Boolean);
  const el=$('#cele');
  el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(110,S.profile.hero||{},h.L,{pose:'flex'})}</div><pre class="cbanner">${lv?`LEVEL ${h.L}`:'COMPLETE'}</pre><div class="ctitle">${lv?esc(h.title):esc(w.title.toLowerCase())}</div><pre class="clines"></pre><div class="small muted">tap anywhere to continue</div></div>`;
  el.hidden=false;haptic(2);
@@ -2014,10 +2029,10 @@ function celebrateDone(w,r,xpm,prMsg){
  },22);
 }
 function celebrate(msgs){
- const big=msgs.filter(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED/.test(m));
+ const big=msgs.filter(m=>/^LEVEL UP|^SKILL UNLOCKED|^UNLOCKED|^LOOT/.test(m));
  if(!big.length)return;
  const h=computeHero(),lv=big.find(m=>/^LEVEL UP/.test(m));
- const lines=[`$ sudo ./levelup --user ${(heroName()||'rep').toLowerCase().replace(/\s+/g,'_')}`,...big.map(m=>'> '+m.replace(/^UNLOCKED /,'ACHIEVEMENT ').toLowerCase()),`> ${h.xp.toLocaleString()} xp total · level ${h.L} · ${h.title}`];
+ const lines=[`$ sudo ./levelup --user ${(heroName()||'rep').toLowerCase().replace(/\s+/g,'_')}`,...big.map(m=>'> '+m.replace(/^UNLOCKED /,'ACHIEVEMENT ').replace(/^LOOT /,'LOOT ').toLowerCase()),`> ${h.xp.toLocaleString()} xp total · level ${h.L} · ${h.title}`];
  const el=$('#cele');
  el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(110,S.profile.hero||{},h.L)}</div><pre class="cbanner">${lv?`LEVEL ${h.L}`:'UNLOCKED'}</pre><div class="ctitle">${lv?esc(h.title):'new loot'}</div><pre class="clines"></pre><div class="small muted">tap anywhere to continue</div></div>`;
  el.hidden=false;
@@ -2070,14 +2085,53 @@ const SPRITES={
 };
 const SKINS=['#f2cba8','#d9a074','#a86b45','#6b4329'];
 const HAIRS=['#2b1d14','#6b4423','#c99a4b','#9a9a9a'];
-function avatarSVG(px=96,o={},L=1){
+// gear: earned by level, achievement or fighting a boss. Unset slots fall back to the level look.
+const LOOT=[
+ {id:'band',slot:'head',n:'Sweatband',c:'var(--amber)',lv:5},
+ {id:'bandana',slot:'head',n:'Comeback bandana',c:'var(--bad)',ach:'comeback'},
+ {id:'visor',slot:'head',n:'Runner visor',c:'var(--ok)',ach:'run5'},
+ {id:'crown',slot:'crown',n:'Root crown',c:'var(--amber)',lv:20},
+ {id:'wrist',slot:'wrist',n:'Wristbands',c:'var(--amber)',lv:12},
+ {id:'chalk',slot:'wrist',n:'Grip chalk',c:'#f4efe4',boss:'hang'},
+ {id:'belt',slot:'belt',n:'Lifting belt',c:'#8a5a32',lv:12},
+ {id:'champ',slot:'belt',n:'Title belt',c:'var(--amber)',ach:'pr3'},
+ {id:'tee',slot:'shirt',n:'Terminal tee',c:'var(--accent)',lv:1},
+ {id:'tank',slot:'shirt',n:'Tank top',c:'var(--accent)',ach:'w10'},
+ {id:'green',slot:'shirt',n:'Phosphor tee',c:'var(--ok)',ach:'mob4'},
+ {id:'amber',slot:'shirt',n:'Amber monitor tee',c:'var(--amber)',ach:'perfect1'},
+ {id:'black',slot:'shirt',n:'Blackout tee',c:'#3a342b',ach:'st30'},
+ {id:'kicks',slot:'shoes',n:'Plain kicks',c:'#e9e2d4',lv:1},
+ {id:'racers',slot:'shoes',n:'Racing flats',c:'var(--accent)',boss:'mile'},
+ {id:'cape',slot:'back',n:'Furnace cape',c:'var(--bad)',boss:'furnace'},
+ {id:'wall',slot:'back',n:'Wall shield',c:'var(--dim)',boss:'pushups'},
+ {id:'aura',slot:'fx',n:'Root aura',lv:20},
+ {id:'glow',slot:'fx',n:'Phosphor glow',ach:'st100'}
+];
+const LOOT_BY=Object.fromEntries(LOOT.map(x=>[x.id,x]));
+const SLOTS=[['head','Head'],['crown','Crown'],['shirt','Shirt'],['wrist','Wrists'],['belt','Belt'],['shoes','Shoes'],['back','Back'],['fx','Effect']];
+const NEEDS_ITEM=new Set(['shirt','shoes']);
+function lootOk(it,h){h=h||computeHero();return it.lv?h.L>=it.lv:it.ach?h.ach.includes(it.ach):it.boss?!!((S.profile.bosses||{})[it.boss]||[]).length:true}
+function lootReq(it){if(it.lv)return `level ${it.lv}`;if(it.ach){const a=ACH.find(x=>x.id===it.ach);return a?`${a.d.toLowerCase()} (${a.n.toLowerCase()})`:it.ach}if(it.boss){const b=BOSSES.find(x=>x.id===it.boss);return `fight ${b?b.n.toLowerCase():it.boss}`}return ''}
+function autoGear(L){return {head:L>=5?'band':null,crown:L>=20?'crown':null,shirt:'tee',wrist:L>=12?'wrist':null,belt:L>=12?'belt':null,shoes:'kicks',back:null,fx:L>=20?'aura':null}}
+function loadout(h){
+ h=h||computeHero();const auto=autoGear(h.L),pick=S.profile.gear||{},g={};
+ for(const [sl] of SLOTS){const v=Object.hasOwn(pick,sl)?pick[sl]:auto[sl];const it=v&&LOOT_BY[v];g[sl]=it&&it.slot===sl&&lootOk(it,h)?v:(NEEDS_ITEM.has(sl)?auto[sl]:null)}
+ return g;
+}
+const lootSet=h=>new Set(LOOT.filter(it=>lootOk(it,h)).map(x=>x.id));
+function avatarSVG(px=96,o={},L=1,opt={}){
  const sex=o.sex==='f'?'f':'m',rows=SPRITES[sex].map(r=>r.split(''));
- if(L>=5){const hr=sex==='f'?3:3;rows[hr]=rows[hr].map((c,i)=>c==='S'||(sex==='m'&&c==='H'&&i>2&&i<9)?'D':c)}
- if(L>=12){[10].forEach(r=>{rows[r][1]='W';rows[r][10]='W'});rows[12]=rows[12].map(c=>c==='P'?'G':c)}
- if(L>=20){rows[0]="...Y.YY.Y...".split('')}
- const col={H:HAIRS[o.hair??0],S:SKINS[o.skin??1],E:'#1a1410',T:'var(--accent)',P:'#3b3f4a',B:'#e9e2d4',D:'var(--amber)',W:'var(--amber)',G:'var(--amber)',Y:'var(--amber)'};
+ const g=opt.gear||(S.profile.hero&&o===S.profile.hero?loadout():autoGear(L)),I=sl=>g[sl]?LOOT_BY[g[sl]]:null;
+ const col={H:HAIRS[o.hair??0],S:SKINS[o.skin??1],E:'#1a1410',T:(I('shirt')||LOOT_BY.tee).c,P:'#3b3f4a',B:(I('shoes')||LOOT_BY.kicks).c,D:'var(--amber)',W:'var(--amber)',G:'var(--amber)',Y:'var(--amber)',K:'#fff1c2',C:'var(--bad)'};
+ if(I('head')){col.D=I('head').c;const hr=3;rows[hr]=rows[hr].map((c,i)=>c==='S'||(sex==='m'&&c==='H'&&i>2&&i<9)?'D':c)}
+ if(I('shirt')&&I('shirt').id==='tank')for(let r=7;r<=10;r++)for(const x of [2,9])if(rows[r][x]==='T')rows[r][x]='S';
+ if(I('wrist')){col.W=I('wrist').c;rows[10][1]='W';rows[10][10]='W'}
+ if(I('belt')){col.G=I('belt').c;rows[12]=rows[12].map(c=>c==='P'?'G':c);if(I('belt').id==='champ'){rows[12][5]='K';rows[12][6]='K'}}
+ if(I('crown'))rows[0]="...Y.YY.Y...".split('');
+ if(I('back')){col.C=I('back').c;for(let r=7;r<=14;r++)for(const x of [1,2,9,10])if(rows[r][x]==='.')rows[r][x]='C'}
  let r='';rows.forEach((row,y)=>row.forEach((c,x)=>{if(c!=='.')r+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${col[c]}"/>`}));
- return `<svg class="avatar ${L>=20?'aura':''}" width="${px*12/17}" height="${px}" viewBox="0 0 12 17" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+ const fx=I('fx');
+ return `<svg class="avatar ${fx?fx.id:''}" width="${px*12/17}" height="${px}" viewBox="0 0 12 17" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
 }
 const heroName=()=>((S.profile.hero||{}).name||'').trim();
 
