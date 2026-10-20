@@ -247,6 +247,7 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .hav{margin-left:auto;display:flex;align-items:center}.hav+.status{margin-left:8px}
 .avatar{image-rendering:pixelated;flex:none}
 .avatar.aura{filter:drop-shadow(0 0 6px var(--amber))}.avatar.glow{filter:drop-shadow(0 0 6px var(--ok))}
+.avatar.idle{animation:bob 1.4s steps(1) infinite}@keyframes bob{50%{transform:translateY(-5.9%)}}@media (prefers-reduced-motion:reduce){.avatar.idle{animation:none}}
 .loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
 .slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
 .lootprev{display:flex;gap:14px;align-items:center}
@@ -1495,7 +1496,7 @@ function vBosses(){
 function vLoadout(h){
  const g=loadout(h),have=lootSet(h);
  return `<div class="box"><div class="boxh"><h2>LOADOUT</h2><span class="tag">${have.size}/${LOOT.length} loot</span></div>
- <div class="lootprev">${avatarSVG(88,S.profile.hero||{},h.L)}<div class="small muted">Earn gear from levels, achievements and boss fights. Tap to equip. Dashed pieces are still locked.</div></div>
+ <div class="lootprev">${avatarSVG(88,S.profile.hero||{},h.L,{pose:null})}<div class="small muted">Earn gear from levels, achievements and boss fights. Tap to equip. Your build changes too: bigger arms at STR lv 6, broader shoulders at STR lv 10, leaner waist at END lv 6.</div></div>
  ${SLOTS.map(([sl,lab])=>{const its=LOOT.filter(x=>x.slot===sl);
   return `<div class="slotrow"><span>${lab}</span><div class="loot">${NEEDS_ITEM.has(sl)?'':`<button class="sm ${g[sl]?'':'on'}" data-a="gear" data-p="${sl}" data-v="">none</button>`}${its.map(it=>have.has(it.id)?`<button class="sm ${g[sl]===it.id?'on':''}" data-a="gear" data-p="${sl}" data-v="${it.id}">${esc(it.n)}</button>`:`<button class="sm lock ${S.lootHint===it.id?'on':''}" data-a="gearlock" data-v="${it.id}" aria-label="${esc(it.n)}, locked">□ ${esc(it.n)}</button>`).join('')}${its.some(it=>it.id===S.lootHint)?`<div class="small" style="color:var(--amber);width:100%">&gt; unlock: ${esc(lootReq(LOOT_BY[S.lootHint]))}</div>`:''}</div></div>`}).join('')}
  </div>`;
@@ -1504,7 +1505,7 @@ function vCharacter(){
  const h=computeHero(),need=xpAt(h.L+1)-xpAt(h.L),have=h.xp-xpAt(h.L);
  const bar=(pct,cls='')=>`<div class="bar ${cls}"><i style="width:${Math.round(Math.min(1,pct)*100)}%"></i></div>`;
  return `<div class="prompt">$ <i>whoami</i></div>
- <div class="box hot hero"><div class="lvlrow">${avatarSVG(104,S.profile.hero||{},h.L)}<div class="lvlnum">${h.L}</div><div class="lvlinfo">${heroName()?`<div class="small">${esc(heroName())}</div>`:""}<div class="t">${esc(h.title)}</div><div class="small muted">${have} / ${need} XP to level ${h.L+1} · ${h.xp.toLocaleString()} total</div>${bar(have/need)}</div></div>
+ <div class="box hot hero"><div class="lvlrow">${avatarSVG(104,S.profile.hero||{},h.L,{idle:true})}<div class="lvlnum">${h.L}</div><div class="lvlinfo">${heroName()?`<div class="small">${esc(heroName())}</div>`:""}<div class="t">${esc(h.title)}</div><div class="small muted">${have} / ${need} XP to level ${h.L+1} · ${h.xp.toLocaleString()} total</div>${bar(have/need)}</div></div>
  <div class="grid3"><div class="stat"><b>${h.streak}</b><span>streak</span></div><div class="stat"><b>${h.best}</b><span>best</span></div><div class="stat"><b>${'▣'.repeat(h.tokens)}${'□'.repeat(2-h.tokens)}</b><span>freezes</span></div></div>
  <div class="small muted">Every 7 days in a row earns a streak freeze (hold up to 2). A freeze covers one missed day automatically.</div></div>
  ${vLoadout(h)}
@@ -2016,7 +2017,7 @@ function celebrateDone(w,r,xpm,prMsg){
  const reps=w.items.reduce((a,it)=>a+estReps(w,it),0);
  const lines=[`$ ./log --workout ${w.name.toLowerCase()}`,`[${'#'.repeat(20)}] 100%`,`> result ...... ${res}${r.dnf?' (unfinished)':''}`,reps?`> reps ........ ${reps}`:'',`> felt ........ ${felt}`,gain?`> xp .......... ${gain}`:'',`> streak ...... ${h.streak} day${h.streak===1?'':'s'}`,prMsg?'> '+prMsg.toLowerCase():'',lv?'> '+lv.toLowerCase():'',...big.map(m=>'> '+m.replace(/^UNLOCKED /,'achievement ').replace(/^LOOT /,'loot ').toLowerCase())].filter(Boolean);
  const el=$('#cele');
- el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(110,S.profile.hero||{},h.L,{pose:'flex'})}</div><pre class="cbanner">${lv?`LEVEL ${h.L}`:'COMPLETE'}</pre><div class="ctitle">${lv?esc(h.title):esc(w.title.toLowerCase())}</div><pre class="clines"></pre><div class="small muted">tap anywhere to continue</div></div>`;
+ el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(110,S.profile.hero||{},h.L,{pose:'flex',idle:true})}</div><pre class="cbanner">${lv?`LEVEL ${h.L}`:'COMPLETE'}</pre><div class="ctitle">${lv?esc(h.title):esc(w.title.toLowerCase())}</div><pre class="clines"></pre><div class="small muted">tap anywhere to continue</div></div>`;
  el.hidden=false;haptic(2);
  const pre=el.querySelector('.clines'),txt=lines.join('\n');
  beep(523,.08);setTimeout(()=>beep(659,.08),110);setTimeout(()=>beep(784,.18),220);
@@ -2034,7 +2035,7 @@ function celebrate(msgs){
  const h=computeHero(),lv=big.find(m=>/^LEVEL UP/.test(m));
  const lines=[`$ sudo ./levelup --user ${(heroName()||'rep').toLowerCase().replace(/\s+/g,'_')}`,...big.map(m=>'> '+m.replace(/^UNLOCKED /,'ACHIEVEMENT ').replace(/^LOOT /,'LOOT ').toLowerCase()),`> ${h.xp.toLocaleString()} xp total · level ${h.L} · ${h.title}`];
  const el=$('#cele');
- el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(110,S.profile.hero||{},h.L)}</div><pre class="cbanner">${lv?`LEVEL ${h.L}`:'UNLOCKED'}</pre><div class="ctitle">${lv?esc(h.title):'new loot'}</div><pre class="clines"></pre><div class="small muted">tap anywhere to continue</div></div>`;
+ el.innerHTML=`<div class="cbox"><div class="obhero" style="justify-content:center">${avatarSVG(110,S.profile.hero||{},h.L,{pose:'flex',idle:true})}</div><pre class="cbanner">${lv?`LEVEL ${h.L}`:'UNLOCKED'}</pre><div class="ctitle">${lv?esc(h.title):'new loot'}</div><pre class="clines"></pre><div class="small muted">tap anywhere to continue</div></div>`;
  el.hidden=false;
  const pre=el.querySelector('.clines'),txt=lines.join('\n');
  if(matchMedia('(prefers-reduced-motion: reduce)').matches){pre.textContent=txt;return}
@@ -2119,19 +2120,38 @@ function loadout(h){
  return g;
 }
 const lootSet=h=>new Set(LOOT.filter(it=>lootOk(it,h)).map(x=>x.id));
+// the hero's own look: build follows attributes, pose follows today
+const BUILD_AT={str1:6,str2:10,end1:6};
+function heroPose(){const t=TODAY();if(dayDone(t))return 'flex';if(isRest(t))return 'rest';return null}
+const ZZZ='<rect x="9.2" y="0.1" width=".4" height=".4" fill="var(--dim)"/><rect x="9.6" y="0.1" width=".4" height=".4" fill="var(--dim)"/><rect x="10.0" y="0.1" width=".4" height=".4" fill="var(--dim)"/><rect x="10.4" y="0.1" width=".4" height=".4" fill="var(--dim)"/><rect x="10.8" y="0.1" width=".4" height=".4" fill="var(--dim)"/><rect x="10.4" y="0.5" width=".4" height=".4" fill="var(--dim)"/><rect x="10.0" y="0.9" width=".4" height=".4" fill="var(--dim)"/><rect x="9.6" y="1.3" width=".4" height=".4" fill="var(--dim)"/><rect x="9.2" y="1.7" width=".4" height=".4" fill="var(--dim)"/><rect x="9.6" y="1.7" width=".4" height=".4" fill="var(--dim)"/><rect x="10.0" y="1.7" width=".4" height=".4" fill="var(--dim)"/><rect x="10.4" y="1.7" width=".4" height=".4" fill="var(--dim)"/><rect x="10.8" y="1.7" width=".4" height=".4" fill="var(--dim)"/>';
+function setPx(rows,y,x,c){if(rows[y]&&x>=0&&x<12)rows[y][x]=c}
 function avatarSVG(px=96,o={},L=1,opt={}){
  const sex=o.sex==='f'?'f':'m',rows=SPRITES[sex].map(r=>r.split(''));
- const g=opt.gear||(S.profile.hero&&o===S.profile.hero?loadout():autoGear(L)),I=sl=>g[sl]?LOOT_BY[g[sl]]:null;
+ const mine=!!(S.profile.hero&&o===S.profile.hero),hh=mine?computeHero():null;
+ const g=opt.gear||(mine?loadout(hh):autoGear(L)),I=sl=>g[sl]?LOOT_BY[g[sl]]:null;
+ const pose=opt.pose!==undefined?opt.pose:mine?heroPose():null,at=opt.attr||(hh&&hh.attr)||{};
+ const str=(at.STR||{}).lv||1,end=(at.END||{}).lv||1;
+ // pose: arms up for a double-biceps flex, one arm overhead for a stretch
+ const armDown=side=>{const x=side<0?1:10;for(const y of [8,9,10])setPx(rows,y,x,'.')};
+ const armUp=side=>{const x=side<0?1:10;setPx(rows,5,x,'S');setPx(rows,6,x,'S');setPx(rows,7,x,'S');armDown(side)};
+ if(pose==='flex'){armUp(-1);armUp(1)}else if(pose==='stretch')armUp(-1);
+ const up=x=>pose==='flex'||(pose==='stretch'&&x===1);
+ // build
+ if(str>=BUILD_AT.str1)for(const x of [1,10]){const out=x===1?0:11;if(up(x)){setPx(rows,7,out,'S');setPx(rows,6,out,'S')}else{setPx(rows,8,out,'S');setPx(rows,9,out,'S')}}
+ if(str>=BUILD_AT.str2)for(const x of [1,10])if(!up(x))setPx(rows,7,x,'T');
+ if(end>=BUILD_AT.end1){setPx(rows,11,3,'.');setPx(rows,11,8,'.')}
  const col={H:HAIRS[o.hair??0],S:SKINS[o.skin??1],E:'#1a1410',T:(I('shirt')||LOOT_BY.tee).c,P:'#3b3f4a',B:(I('shoes')||LOOT_BY.kicks).c,D:'var(--amber)',W:'var(--amber)',G:'var(--amber)',Y:'var(--amber)',K:'#fff1c2',C:'var(--bad)'};
  if(I('head')){col.D=I('head').c;const hr=3;rows[hr]=rows[hr].map((c,i)=>c==='S'||(sex==='m'&&c==='H'&&i>2&&i<9)?'D':c)}
  if(I('shirt')&&I('shirt').id==='tank')for(let r=7;r<=10;r++)for(const x of [2,9])if(rows[r][x]==='T')rows[r][x]='S';
- if(I('wrist')){col.W=I('wrist').c;rows[10][1]='W';rows[10][10]='W'}
+ if(I('wrist')){col.W=I('wrist').c;for(const x of [1,10])setPx(rows,up(x)?5:10,x,'W')}
  if(I('belt')){col.G=I('belt').c;rows[12]=rows[12].map(c=>c==='P'?'G':c);if(I('belt').id==='champ'){rows[12][5]='K';rows[12][6]='K'}}
  if(I('crown'))rows[0]="...Y.YY.Y...".split('');
  if(I('back')){col.C=I('back').c;for(let r=7;r<=14;r++)for(const x of [1,2,9,10])if(rows[r][x]==='.')rows[r][x]='C'}
+ if(pose==='rest'){rows[4]=rows[4].map(c=>c==='E'?'S':c);}
+ col.Z='var(--dim)';
  let r='';rows.forEach((row,y)=>row.forEach((c,x)=>{if(c!=='.')r+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${col[c]}"/>`}));
  const fx=I('fx');
- return `<svg class="avatar ${fx?fx.id:''}" width="${px*12/17}" height="${px}" viewBox="0 0 12 17" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+ return `<svg class="avatar ${fx?fx.id:''} ${opt.idle?'idle':''}" width="${px*12/17}" height="${px}" viewBox="0 0 12 17" shape-rendering="crispEdges" aria-hidden="true">${r}${pose==='rest'&&!I('crown')?ZZZ:''}</svg>`;
 }
 const heroName=()=>((S.profile.hero||{}).name||'').trim();
 
