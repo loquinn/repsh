@@ -252,6 +252,7 @@ body.has-cta{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .loot{display:flex;flex-wrap:wrap;gap:6px}.loot .sm{padding:6px 9px}.loot .sm.lock{opacity:.4;border-style:dashed}
 .slotrow{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;padding:7px 0;border-top:1px dashed var(--line)}.slotrow:first-of-type{border-top:0}.slotrow>span{font-size:11px;letter-spacing:.06em;color:var(--dim);text-transform:uppercase;padding-top:8px}
 .lootprev{display:flex;gap:14px;align-items:center}
+#upd{position:fixed;left:16px;right:16px;top:calc(10px + env(safe-area-inset-top,0px));z-index:70;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px 8px 14px;background:var(--panel);border:1px solid var(--accent);border-radius:4px;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.4)}
 .pxdemo{image-rendering:pixelated;display:block}
 @keyframes demofr2{0%{opacity:1}50.000%,100%{opacity:0}}@keyframes demofr4{0%{opacity:1}25.000%,100%{opacity:0}}@keyframes demofr6{0%{opacity:1}16.667%,100%{opacity:0}}@keyframes demofr8{0%{opacity:1}12.500%,100%{opacity:0}}@keyframes demofr10{0%{opacity:1}10.000%,100%{opacity:0}}
 .pxdemo.anim g{opacity:0;animation-timing-function:steps(1,end)}
@@ -338,11 +339,13 @@ pre.ascii{margin:0;font:12px/1.15 var(--mono);color:var(--accent);overflow-x:aut
 <div id="tmr" hidden></div>
 <div id="cta" hidden></div>
 <div id="toast" hidden role="status"></div>
+<div id="upd" hidden role="status"></div>
 <div id="sheet"></div>
 <div id="cele" hidden data-a="celeclose"></div>
 <div id="setupflow" hidden></div>
 
 <script>
+const BUILD='b92508445';
 /* ============ helpers ============ */
 const $=(s,el=document)=>el.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -1077,7 +1080,7 @@ function vPlanWeek(mon){
   if(T.slots||(d.workout&&(d.workout.shared||d.workout.again))){const w=workoutFor(k);nm=w.name;what=w.signature?'★ signature · '+FOCUS_TXT[SIG_BY[w.signature].focus]:w.title.toLowerCase()+' · '+fmtL(w).toLowerCase();mins='~'+estimateMins(w)+'m'}
   else if(T.run){nm=runFor(k).name;mins='~'+Math.round(seqSecs(runFor(k).steps)/60)+'m'}
   else if(T.mob){nm=mobFor(k).name.split(' · ')[0];mins='~'+Math.round(seqSecs(mobFor(k).steps)/60)+'m'}
-  const st=dayDone(k)?'<span class="tag ok">done</span>':k===t?'<span class="tag a">today</span>':k<t&&k>=S.profile.start&&!isRest(k)?'<span class="tag">missed</span>':'';
+  const st=dayDone(k)?'<span class="tag ok">done</span>':d.skip?'<span class="tag">skipped</span>':k===t?'<span class="tag a">today</span>':k<t&&k>=S.profile.start&&!isRest(k)?'<span class="tag">missed</span>':'';
   return `<button class="row planday ${k===t?'now':''}" data-a="goto" data-v="${k}"><span class="pdd"><b>${DOW[dt.getDay()]}</b>${dt.getDate()}</span><span class="nm">${esc(nm||what)}<small>${esc(nm?what:'')}${mins?' · '+mins:''}</small></span>${st}</button>`}).join('')}</div>`;
 }
 function vPlan(){
@@ -1515,7 +1518,7 @@ function estReps(w,it){
  return 0;
 }
 // the planned day before k (skipping rest days); a miss there makes today a comeback
-function prevPlanned(k){for(let i=1;i<=7;i++){const p=addDays(k,-i);if(p<S.profile.start)return null;if(!isRest(p))return p}return null}
+function prevPlanned(k){for(let i=1;i<=7;i++){const p=addDays(k,-i);if(p<S.profile.start)return null;if(!isRest(p)&&!getDay(p).skip)return p}return null}
 const missedBefore=k=>{const p=prevPlanned(k);return !!p&&!dayDone(p)};
 function isPerfectWeek(mon){const days=Array.from({length:7},(_,i)=>addDays(mon,i)).filter(d=>d>=S.profile.start&&!isRest(d));return days.length>0&&days.every(dayDone)}
 const MILESTONES=[7,14,30,50,100,180,365];
@@ -1555,6 +1558,7 @@ function computeHero(){
  let cur=0,best=0,tok=0;const frozen=new Set();const first=keys.find(dayDone);
  if(first)for(let k=first;k<=t;k=addDays(k,1)){
   if(dayDone(k)||isRest(k)){cur++;best=Math.max(best,cur);if(cur%7===0){tok=Math.min(2,tok+1);h.xp+=50}}
+  else if(getDay(k).skip){}
   else if(k!==t){if(tok>0&&cur>0){tok--;frozen.add(k)}else cur=0}
  }
  Object.assign(h,{streak:cur,best,tokens:tok,frozen,sessions:h.workouts+h.runs+h.mobs});
@@ -1628,12 +1632,14 @@ function vToday(){
  if(isToday&&isHell(k)&&!dayDone(k))notes.push(`<div class="box quest"><div class="boxh"><h2>HELL WEEK</h2><span class="tag am">final week</span></div><div class="small">Every session this week is a signature workout. Retests first, so every day is a shot at a record. Eat, sleep, warm up properly.</div></div>`);
  if(isToday&&isTestWeek(k)&&testDue().length)notes.push(`<button class="bossbar" data-a="gotoboss">⚔ Test week · ${testDue().length} boss${testDue().length>1?'es':''} to fight this week ›</button>`);
  if(isToday&&!T.rest&&!dayDone(k)&&missedBefore(k)&&!computeHero().frozen.has(prevPlanned(k)))notes.push(`<div class="box quest"><div class="boxh"><h2>COMEBACK QUEST</h2><span class="tag am">+100 XP</span></div><div class="small">Missed your last planned day. Any session today earns +100 XP. Showing up beats being perfect.</div>${T.slots&&dayMins(k)>10&&!(d.workout&&d.workout.result)?'<button class="sm" data-a="setmins" data-v="10">Make it a 10-minute version</button>':''}</div>`);
- if(isToday&&window.REPSH_APP&&allDayKeys().length>=3&&(!S.profile.lastExport||daysBetween(S.profile.lastExport,TODAY())>=14))notes.push(`<button class="bossbar" data-a="export">⇩ Back up your log · last backup ${S.profile.lastExport?daysBetween(S.profile.lastExport,TODAY())+' days ago':'never'} ›</button>`);
+ if(isToday&&window.REPSH_APP&&allDayKeys().length>=3&&(!S.profile.lastExport||daysBetween(S.profile.lastExport,TODAY())>=7))notes.push(`<button class="bossbar" data-a="export">⇩ Back up your log · last backup ${S.profile.lastExport?daysBetween(S.profile.lastExport,TODAY())+' days ago':'never'} ›</button>`);
  if(S.shareFallback)h+=`<div class="box"><textarea readonly id="share-out">${esc(S.shareFallback)}</textarea><button class="sm" data-a="sharedone">Done</button></div>`;
  if(S.flash)h+=`<div class="flash">${esc(S.flash)}</div>`;
  {const cal=isToday&&!assessPending()&&(computeHero().sessions>=2||S.profile.fitness==='trained')?calibPending():[];if(cal.length)notes.splice(notes.length&&/quest/.test(notes[0])?1:0,0,`<button class="bossbar" data-a="gotoboss">⚔ Calibrate: ${cal.length} quick test${cal.length>1?'s':''} set your starting levels ›</button>`);
  const due=isToday&&!cal.length?bossesDue():[];if(due.length&&!(T.slots&&!(d.workout&&d.workout.result)))notes.push(`<button class="bossbar" data-a="gotoboss">⚔ ${due.length} boss fight${due.length>1?'s':''} ready${(S.profile.bosses&&Object.keys(S.profile.bosses).length)?'':' · set your baselines'} ›</button>`)}
  if(notes.length){h+=`<div class="notes">${notes[0]}${notes.length>1?`<details class="more"><summary class="small">+${notes.length-1} more</summary>${notes.slice(1).join('')}</details>`:''}</div>`}
+ if(isToday&&S.resume)h=h.replace('<div class="daynav">',vResume()+'<div class="daynav">');
+ if(d.skip&&!dayDone(k))h+=`<div class="box"><div class="boxh"><h2>SKIPPED</h2><span class="tag ok">streak holds</span></div><div class="small muted">Rest up. Skipped days don't break your streak (up to 2 a week). Changed your mind? The workout is still below.</div><div class="btns"><button class="ghost sm" data-a="skipday">Undo skip</button></div></div>`;
  if(isToday&&assessPending()&&!dayDone(k))h+=vAssess(k);
  if(T.slots||(d.workout&&(d.workout.shared||d.workout.again)))h+=vWorkout(k,d);
  else if(T.run)h+=vRun(k,d);
@@ -1650,7 +1656,7 @@ const SHORTTYPE={push:'PUSH',legsA:'LEGS',run:'RUN',pull:'PULL',legsB:'LEGS',ful
 function weekStrip(k){
  const mon=monOf(k),t=TODAY(),h=computeHero();
  const cells=Array.from({length:7},(_,i)=>{const d=addDays(mon,i),dt=parseKey(d),done=dayDone(d),fz=h.frozen.has(d);
-  const rs=isRest(d),pre=d<S.profile.start,g=done?'■':fz?'▣':pre?' ':rs?'~':d===t?'◧':d>t?'·':'–';
+  const rs=isRest(d),pre=d<S.profile.start,g=done?'■':fz?'▣':pre?' ':getDay(d).skip?'=':rs?'~':d===t?'◧':d>t?'·':'–';
   return `<button class="wd ${d===k?'sel':''} ${d===t?'today':''} ${done?'done':''}" data-a="goto" data-v="${d}" aria-label="${DOW[dt.getDay()]} ${dt.getDate()}${done?', done':''}"><span>${DOW1[dt.getDay()]}</span><b>${dt.getDate()}</b><i>${g}</i><em>${typeOf(d)==='run'&&S.profile.runMode==='walk'?'WALK':SHORTTYPE[typeOf(d)]}</em></button>`}).join('');
  return `<div class="week"><button class="sm ghost wkn" data-a="day" data-v="-7" aria-label="Previous week">‹</button><div class="wk">${cells}</div><button class="sm ghost wkn" data-a="day" data-v="7" aria-label="Next week">›</button></div>`;
 }
@@ -1687,12 +1693,12 @@ function vWorkout(k,d){
   h+=`<div class="grid3"><div class="stat"><b>${r.time!=null?fmt(r.time):(r.rounds!=null?r.rounds+(r.reps?'+'+r.reps:''):'✓')}</b><span>${r.time!=null?'time':r.rounds!=null?(w.format==='ladder'?'rungs':'rounds'):'complete'}</span></div><div class="stat"><b>${{easy:'EZ',right:'OK',hard:'HARD'}[r.rating]||'—'}</b><span>felt</span></div><div class="stat"><b>${(r.prog||[]).length}</b><span>adjustments</span></div></div>
   ${r.notes?`<div class="small muted">› ${esc(r.notes)}</div>`:''}
   <div class="btns"><button class="ghost sm" data-a="shareresult">⇪ Share result + code</button></div>
-  <details><summary class="small">Edit result</summary>${vResultForm(k,w)}</details>`;
+  <details><summary class="small">Edit result</summary>${vResultForm(k,w)}<div class="btns"><button class="ghost sm" data-a="dellog">✕ Delete this log</button></div></details>`;
  }else if(S.form===k){
   h+=vResultForm(k,w);
  }else{
   h+=`<div class="btns">${w.shared||w.again?`<button class="ghost sm" data-a="dropload">✕ Back to today's plan</button>`:(w.signature?'<button class="ghost sm" data-a="reroll">↻ Skip, normal workout</button>':'<button class="ghost sm" data-a="reroll">↻ Reroll</button>')}<button class="ghost sm" data-a="logmanual">Log without timer</button></div>
-  <details class="more"><summary class="small">⋯ More</summary><div class="btns"><button class="ghost sm" data-a="sharecode">⇪ Share as a code</button><button class="ghost sm" data-a="codebox">⌨ Enter a code</button></div></details>`;
+  <details class="more"><summary class="small">⋯ More</summary><div class="btns"><button class="ghost sm" data-a="sharecode">⇪ Share as a code</button><button class="ghost sm" data-a="codebox">⌨ Enter a code</button>${d.skip?'':'<button class="ghost sm" data-a="skipday">⏸ Skip today (sick, travel)</button>'}</div></details>`;
  }
  h+=`</div>`;
  h+=`<div class="box"><details ${done&&!d.cool?'open':''}><summary><span>Cool-down · ${Math.round(seqSecs(cool)/60)} min</span><span class="tag ${d.cool?'ok':''}" style="margin-left:auto">${d.cool?'done':'stretch'}</span></summary>
@@ -2162,6 +2168,11 @@ const ACT={
   S.bossDraft=null;S.flash=`> ${B.n}: ${bossFmt(B,v)}. ${pr}\n${m.join('\n')}`;render();scrollTo(0,0)},
  tfintimer:()=>{const w=workoutFor(S.view);if(!w.tfin)return;if(S.form===S.view){const pr=S.pendingResult=S.pendingResult||{},v=id=>$('#'+id)?.value;const tm=parseTime(v('r-time'));if(tm!=null)pr.time=tm;if(v('r-rounds'))pr.rounds=+v('r-rounds');if(v('r-reps'))pr.reps=+v('r-reps');if(v('r-fin'))pr.fin=+v('r-fin');if(v('r-notes'))pr.notes=v('r-notes')}openTimer({kind:'boss',k:S.view,boss:{id:'tfin',n:'FINISHER',test:`${amtText(w.tfin.amt,w.tfin.u)} ${short(w.tfin.n)} for time`,unit:'time',sw:true},total:0,label:'FINISHER',rounds:0})},
  skilllog:b=>skillLog(b.dataset.v),
+ resume:()=>resumeTimer(),
+ resumedrop:()=>{S.resume=null;try{localStorage.removeItem(TKEY)}catch(e){}render()},
+ reload:()=>location.reload(),
+ skipday:()=>skipDay(),
+ dellog:()=>{if(!confirm('Delete this logged workout? XP and records from it go too. Level changes it caused stay.'))return;undoable('Log deleted',()=>editDay(S.view,d=>{delete d.workout}));S.form=null;render()},
  weekfeel:b=>{const v=b.dataset.v,mon=b.dataset.p,d=v==='easy'?.05:v==='hard'?-.08:0;editProfile(p=>{p.weekFeel={...(p.weekFeel||{}),[mon]:v};p.seenReports=[...new Set([...(p.seenReports||[]),mon])].slice(-60);if(d)for(const pat in p.levels){const L=p.levels[pat];L.v=Math.round(Math.min(1.5,Math.max(.6,L.v+d))*100)/100}});S.flash=v==='easy'?'> Noted. Every pattern gets about 5% more volume next week.':v==='hard'?'> Noted. Every pattern drops about 8% in volume next week. Sleep and protein matter as much as the workouts.':'> Noted. Keeping the current pace.';render();scrollTo(0,0)},
  plan:()=>{S.tab='plan';S.planWk=0;S.flash='';render();scrollTo(0,0)},
  planwk:b=>{S.planWk=+b.dataset.v;render()},
@@ -2294,15 +2305,18 @@ function startSeq(which){
 }
 function openTimer(t){
  beep(660,.05);lockScreen();
- S.timer={...t,acc:-5,t0:Date.now(),run:true,last:null,stage:null};
+ S.timer={...t,acc:-5,t0:Date.now(),run:true,last:null,stage:null};saveTimer();
  const ov=$('#tmr');ov.hidden=false;document.body.style.overflow='hidden';
  drawTimer(true);clearInterval(tickId);tickId=setInterval(()=>drawTimer(false),200);
 }
 function elapsed(){const t=S.timer;return t.acc+(t.run?(Date.now()-t.t0)/1000:0)}
-function closeTimer(){clearInterval(tickId);S.timer=null;$('#tmr').hidden=true;document.body.style.overflow='';try{wake&&wake.release()}catch(e){}wake=null;try{speechSynthesis.cancel()}catch(e){}}
+const TKEY='repsh.timer';
+function saveTimer(){const t=S.timer;if(!t)return;try{const {stage,last,...rest}=t;localStorage.setItem(TKEY,JSON.stringify({...rest,savedAt:Date.now()}))}catch(e){}}
+function closeTimer(){try{localStorage.removeItem(TKEY)}catch(e){}clearInterval(tickId);S.timer=null;$('#tmr').hidden=true;document.body.style.overflow='';try{wake&&wake.release()}catch(e){}wake=null;try{speechSynthesis.cancel()}catch(e){}}
 function stageHTML(big,name,cue,next,id){return `${id&&(exById(id)||SKILLX[id])?`<div class="stdemo">${demoSVG(id,104)}</div>`:''}<div class="big">${esc(big)}</div><div class="mv">${esc(name)}</div>${cue?`<div class="cue">${esc(cue)}</div>`:''}${next?`<div class="nx">next › ${esc(next)}</div>`:''}`}
 function seqPos(t,el){let acc=0,i=0;while(i<t.steps.length&&el>=acc+t.steps[i][1]){acc+=t.steps[i][1];i++}return {i,acc}}
 function drawTimer(full){
+ if(S.timer&&Date.now()-(S._tsave||0)>2000){S._tsave=Date.now();saveTimer()}
  const t=S.timer;if(!t)return;const el=elapsed(),ov=$('#tmr');
  if(full||!ov.querySelector('.clock'))buildTimer(t);
  let clock='',sub='',stage='',key='',rest=false,done=false,prog=0;
@@ -2851,6 +2865,42 @@ function freshStart(){
  S.tab='today';S.view=TODAY();S.form=null;S.flash='> Fresh start. Today is Day 1.';render();scrollTo(0,0);
 }
 
+/* ============ resume, updates, swipes ============ */
+// a workout interrupted by the phone killing the app comes back paused where you left off
+function checkResume(){
+ let o=null;try{o=JSON.parse(localStorage.getItem(TKEY)||'null')}catch(e){}
+ if(!o||!o.savedAt||Date.now()-o.savedAt>4*3600e3){try{localStorage.removeItem(TKEY)}catch(e){}return}
+ if(o.k&&o.w&&getDay(o.k).workout&&getDay(o.k).workout.result){try{localStorage.removeItem(TKEY)}catch(e){}return}
+ S.resume=o;render();
+}
+function resumeTimer(){
+ const o=S.resume;if(!o)return;S.resume=null;
+ const acc=o.acc+(o.run?(o.savedAt-o.t0)/1000:0);
+ lockScreen();S.timer={...o,acc,t0:Date.now(),run:false,last:null,stage:null};delete S.timer.savedAt;
+ const ov=$('#tmr');ov.hidden=false;document.body.style.overflow='hidden';
+ drawTimer(true);clearInterval(tickId);tickId=setInterval(()=>drawTimer(false),200);
+ S.flash='';say('Paused. Tap resume when you are ready.');
+}
+function vResume(){const o=S.resume;if(!o)return '';const el=Math.max(0,Math.round(o.acc+(o.run?(o.savedAt-o.t0)/1000:0)));
+ return `<div class="box quest"><div class="boxh"><h2>UNFINISHED</h2><span class="tag am">${fmt(el)} in</span></div><div class="small">${esc(o.w?o.w.name:o.label||'Workout')} was interrupted. Pick up where you left off. It resumes paused, so the time away doesn't count.</div><div class="btns"><button class="pri" data-a="resume">▶ Resume</button><button class="ghost" data-a="resumedrop">Discard</button></div></div>`}
+let UPD_AT=0;
+function checkUpdate(){
+ if(!navigator.onLine||Date.now()-UPD_AT<6e5||!/^https?:/.test(location.protocol))return;UPD_AT=Date.now();
+ fetch('./index.html?v='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{const m=t.match(/const BUILD='(\w+)'/);if(m&&m[1]!==BUILD){const el=$('#upd');if(el){el.innerHTML='<span>&gt; new version ready</span><button class="sm pri" data-a="reload">Reload</button>';el.hidden=false}}}).catch(()=>{});
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(checkUpdate,1500)});
+// swipe left/right on Today to change day
+let SW0=null;
+document.addEventListener('touchstart',e=>{if(S.tab!=='today'||S.timer||S.sheet||e.touches.length>1){SW0=null;return}if(e.target.closest('.week,.htabs,input,textarea,select,.seg,.sheet,#cele,#setupflow,details[open] .list')){SW0=null;return}const t=e.touches[0];SW0={x:t.clientX,y:t.clientY,at:Date.now()}},{passive:true});
+document.addEventListener('touchend',e=>{if(!SW0)return;const t=e.changedTouches[0],dx=t.clientX-SW0.x,dy=t.clientY-SW0.y;const ok=Math.abs(dx)>70&&Math.abs(dy)<45&&Date.now()-SW0.at<600;SW0=null;if(!ok)return;S.view=addDays(S.view,dx<0?1:-1);S.flash='';S.form=null;render()},{passive:true});
+// skipping: sick, travel, life. Holds the streak, at most twice in 7 days.
+const skipsNear=k=>Array.from({length:7},(_,i)=>addDays(k,-i)).filter(d=>getDay(d).skip).length;
+function skipDay(){
+ const k=S.view;if(dayDone(k))return;
+ if(!getDay(k).skip&&skipsNear(k)>=2){S.flash='> Already 2 skips this week. A 10-minute version still counts, try that.';render();return}
+ undoable(getDay(k).skip?'Skip removed':'Day skipped',()=>editDay(k,d=>{if(d.skip)delete d.skip;else d.skip=true}));render();
+}
+
 /* ============ import ============ */
 function importBackup(file){
  const fr=new FileReader();
@@ -2885,7 +2935,7 @@ async function doExport(){
 }
 
 /* ============ boot ============ */
-render();initStore();
+render();initStore();setTimeout(()=>{checkResume();checkUpdate()},900);
 // roll the view over at midnight if the app stays open
 setInterval(()=>{const t=TODAY();if(S.lastToday&&S.lastToday!==t&&S.view===S.lastToday&&!S.timer){S.view=t;render()}S.lastToday=t},60000);S.lastToday=TODAY();
 </script>
